@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apartment Setup & Budget Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #faf9f6;
+            color: #1f2937;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        /* Dashboard Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(15px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+
+        .delay-100 {
+            animation-delay: 100ms;
+        }
+
+        .delay-200 {
+            animation-delay: 200ms;
+        }
+
+        .delay-300 {
+            animation-delay: 300ms;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+
+        .choice-card.selected {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
+        }
+
+        .progress-bar-fill {
+            transition: width 0.3s ease-in-out, background-color 0.3s ease-in-out;
+        }
+
+        /* Custom scrollbar for Gemini chat */
+        #geminiChatHistory::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #geminiChatHistory::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 4px;
+        }
+
+        #geminiChatHistory::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body class="antialiased min-h-screen pb-12">
+
+    <!-- Chosen Palette: Warm Neutrals (Off-white background #faf9f6, Slate text #1f2937) with Blue (#3b82f6) and Emerald (#10b981) accents for data and interactions -->
+    <!-- Application Structure Plan: A tabbed single-page dashboard. The header provides global navigation between 'Overview', 'Appliances', and 'Furniture', while keeping a persistent mini budget total visible. The 'Overview' tab features a high-level budget breakdown, animated progress bar, and categorized donut chart. The 'Appliances' tab houses the detailed, interactive selection interface (card/list views) for modifying choices. A new tab routing system allows opening specific appliance comparisons in an isolated view with an integrated Gemini AI consultant. -->
+    <!-- Visualization & Content Choices: Goal: Budget Tracking & Item Selection. Viz: Chart.js Donut Chart, HTML Progress Bar, Interactive Grid/List. Interaction: Tab switching controls visibility. Radio buttons/select dropdowns update global state, triggering instant recalculations of the dashboard chart and totals. Justification: Separating the dashboard from the selection list prevents visual clutter, while the persistent header total maintains context. Library: Chart.js for data viz. NO SVG/Mermaid used. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div
+            class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Apartment Setup Dashboard</h1>
+                <div class="flex items-center gap-3 mt-1">
+                    <p class="text-sm text-gray-500 font-medium">Target: $30k - $50k</p>
+                    <span class="text-gray-300">|</span>
+                    <p class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100"
+                        id="headerMiniTotal">Total: $0</p>
+                </div>
+            </div>
+            <nav class="flex space-x-1 bg-gray-100 p-1 rounded-lg border border-gray-200" id="mainNav">
+                <button onclick="switchTab('overview')" id="nav-overview"
+                    class="px-5 py-2 rounded-md text-sm font-bold bg-white text-blue-800 shadow-sm transition-all border border-gray-200">Overview</button>
+                <button onclick="switchTab('appliances')" id="nav-appliances"
+                    class="px-5 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-all border border-transparent">Appliances</button>
+                <button onclick="switchTab('furniture')" id="nav-furniture"
+                    class="px-5 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-all border border-transparent">Furniture</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        <div id="mainDashboard">
+
+            <!-- OVERVIEW TAB -->
+            <section id="tab-overview" class="tab-pane block">
+                <!-- Welcome Banner -->
+                <div
+                    class="bg-gradient-to-br from-blue-700 via-indigo-800 to-blue-900 rounded-2xl shadow-xl p-8 mb-8 border border-blue-600 animate-fade-in-up text-white relative overflow-hidden">
+                    <div
+                        class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-white opacity-5 rounded-full blur-2xl">
+                    </div>
+                    <div class="absolute bottom-0 left-20 -mb-10 w-32 h-32 bg-blue-400 opacity-10 rounded-full blur-xl">
+                    </div>
+                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                        <div
+                            class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-3xl shadow-inner border border-white/20 backdrop-blur-sm">
+                            ✨
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold tracking-tight mb-2">Master Setup Dashboard</h2>
+                            <p class="text-blue-100 text-sm leading-relaxed max-w-3xl">
+                                Welcome to your centralized planning hub. Based on your apartment profile (white goods
+                                provided), you have a healthy budget range to invest heavily in premium climate control,
+                                cleaning tech, and entertainment. Track your real-time financial impact below.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 animate-fade-in-up delay-100">
+                    <div
+                        class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl font-black">
+                            💰</div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Budget Status</p>
+                            <p id="quickStatStatus" class="text-lg font-extrabold text-gray-800 tracking-tight">
+                                Calculating...</p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-black">
+                            📦</div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Selected Items</p>
+                            <p id="quickStatItems" class="text-lg font-extrabold text-gray-800 tracking-tight">0 <span
+                                    class="text-sm font-medium text-gray-500">appliances</span></p>
+                        </div>
+                    </div>
+                    <div
+                        class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 hover:shadow-md transition-shadow">
+                        <div
+                            class="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-xl font-black">
+                            ⚖️</div>
+                        <div>
+                            <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">Available Funds</p>
+                            <p id="quickStatRemaining" class="text-lg font-extrabold text-gray-800 tracking-tight">$0
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Budget Tracker Column -->
+                    <div class="lg:col-span-7 space-y-8 animate-fade-in-up delay-200">
+                        <!-- Main Financial Summary -->
+                        <div class="bg-white p-8 rounded-2xl shadow-md border border-gray-100 relative overflow-hidden">
+                            <div class="absolute top-0 left-0 w-1 h-full bg-blue-500" id="cardAccentBorder"></div>
+                            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-2">Total Estimated
+                                Cost</h2>
+                            <div class="flex items-baseline gap-2 mb-6">
+                                <div class="text-6xl font-black text-gray-900 tracking-tighter" id="totalCostDisplay">$0
+                                </div>
+                                <div class="text-lg font-bold text-gray-400">HKD</div>
+                            </div>
+
+                            <div
+                                class="mb-3 flex justify-between text-xs font-bold text-gray-500 uppercase tracking-wide">
+                                <span>$0</span>
+                                <span>Target: $30k - $50k</span>
+                                <span>$50k+</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-4 overflow-hidden shadow-inner p-0.5">
+                                <div id="budgetProgressBar" class="bg-blue-500 h-full rounded-full progress-bar-fill"
+                                    style="width: 0%"></div>
+                            </div>
+                            <div id="budgetStatus"
+                                class="mt-4 p-3 rounded-lg bg-gray-50 text-sm font-medium text-gray-700 border border-gray-100 flex items-center gap-2">
+                                <!-- Status dynamically injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Breakdown List -->
+                        <div class="bg-white p-8 rounded-2xl shadow-md border border-gray-100">
+                            <h3
+                                class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-6 flex items-center gap-2 border-b border-gray-100 pb-4">
+                                🧮 Detailed Breakdown
+                            </h3>
+                            <ul id="categoryBreakdownList" class="space-y-5">
+                                <!-- Populated by JS -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Chart Column -->
+                    <div
+                        class="lg:col-span-5 flex flex-col items-center justify-center bg-white p-8 rounded-2xl shadow-md border border-gray-100 sticky top-24 animate-fade-in-up delay-300">
+                        <h2 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-8 w-full text-center">
+                            Spending Distribution
+                        </h2>
+                        <div class="chart-container w-full">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-gray-100 w-full text-center">
+                            <p class="text-xs text-gray-400 font-medium max-w-xs mx-auto">
+                                The donut chart recalculates instantly as you modify your selections in the Appliances
+                                tab.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- APPLIANCES TAB -->
+            <section id="tab-appliances" class="tab-pane hidden">
+                <div
+                    class="bg-white rounded-xl shadow-md p-6 mb-6 border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex flex-wrap gap-2" id="filterContainer">
+                        <button
+                            class="px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors shadow-sm"
+                            data-filter="all">All Items</button>
+                        <button
+                            class="px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors"
+                            data-filter="Necessary">Necessary Only</button>
+                        <button
+                            class="px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-sm font-medium hover:bg-yellow-100 transition-colors"
+                            data-filter="Good to Have">Good to Have Only</button>
+                    </div>
+
+                    <div class="inline-flex rounded-md shadow-sm bg-gray-100 p-1 border border-gray-200" role="group"
+                        id="viewToggle">
+                        <button type="button" onclick="setView('card')" id="btnCard"
+                            class="px-4 py-2 text-sm font-bold text-blue-800 bg-white border border-transparent rounded shadow-sm focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all">Card
+                            View</button>
+                        <button type="button" onclick="setView('list')" id="btnList"
+                            class="px-4 py-2 text-sm font-medium text-gray-600 bg-transparent border border-transparent rounded hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all">List
+                            View</button>
+                    </div>
+                </div>
+
+                <div id="applianceContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
+            <!-- FURNITURE TAB -->
+            <section id="tab-furniture" class="tab-pane hidden">
+                <div
+                    class="bg-white rounded-xl shadow-md p-16 border border-gray-100 flex flex-col items-center justify-center text-center min-h-[50vh]">
+                    <div
+                        class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-4xl mb-6 shadow-inner">
+                        🛋️
+                    </div>
+                    <h2 class="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Furniture Planning</h2>
+                    <p class="text-gray-500 max-w-md mx-auto text-lg">The apartment layout mapping and furniture
+                        selection catalog is currently under development.</p>
+                    <div
+                        class="mt-8 px-6 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-bold tracking-widest uppercase border border-blue-100">
+                        Coming Soon
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Compare View Template (Hidden unless triggered via URL) -->
+        <div id="compareView" class="hidden pb-12">
+        </div>
+    </main>
+
+    <script>
+        const appliances = [
+            {
+                id: 'dehumidifier',
+                category: 'Climate & Air',
+                name: 'Dehumidifier',
+                priority: 'Necessary',
+                context: 'Absolutely crucial for HK weather to prevent mold, dry clothes indoors, and protect furniture.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Mitsubishi Electric Inverter', price: 4500, desc: 'Best performance, extremely durable, very quiet. The gold standard in HK.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Mitsubishi+Dehumidifier', link: 'https://www.fortress.com.hk/en/search?q=Mitsubishi+Dehumidifier',
+                        specs: { 'Capacity': '25L/Day', 'Type': 'Inverter Compressor', 'Purification': 'PM2.5 Filter', 'Smart Control': 'No' }
+                    },
+                    {
+                        id: 'c2', name: 'LG DD12GMWE0', price: 2980, desc: 'Excellent value, dual inverter, smart app connectivity, and highly rated for HK.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=LG+DD12GMWE0', link: 'https://www.fortress.com.hk/en/search?q=LG+DD12GMWE0',
+                        specs: { 'Capacity': '28L/Day', 'Type': 'Dual Inverter', 'Purification': 'Ionizer', 'Smart Control': 'ThinQ WiFi' }
+                    }
+                ]
+            },
+            {
+                id: 'vacuum',
+                category: 'Cleaning',
+                name: 'Cordless Vacuum & Mop',
+                priority: 'Necessary',
+                context: 'Since there are no rugs, a vacuum with mopping capability is essential for hard floors in a 550 sqft space.',
+                choices: [
+                    {
+                        id: 'c1', name: 'LG CordZero A9T Tower', price: 6500, desc: 'Auto-empty dustbin tower, simultaneous vacuum and mop, premium performance.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=LG+A9T+Tower', link: 'https://www.fortress.com.hk/en/search?q=LG+CordZero+A9T',
+                        specs: { 'Weight': '2.7kg', 'Suction Power': '210W', 'Battery': 'Up to 120 mins (2 batteries)', 'Mop': 'Dual Spinning Mop' }
+                    },
+                    {
+                        id: 'c2', name: 'LG CordZero A9L', price: 3800, desc: 'Excellent suction with Power Drive Mop attachment, lightweight and highly capable.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=LG+A9L', link: 'https://www.fortress.com.hk/en/search?q=LG+CordZero+A9L',
+                        specs: { 'Weight': '2.6kg', 'Suction Power': '200W', 'Battery': 'Up to 60 mins', 'Mop': 'Power Drive Attachment' }
+                    }
+                ]
+            },
+            {
+                id: 'robot_vacuum',
+                category: 'Cleaning',
+                name: 'Robot Vacuum & Mop',
+                priority: 'Good to Have',
+                context: 'Maintains base cleanliness automatically. Great for under furniture.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Roborock Q Revo', price: 6000, desc: 'Self-washing mop, auto-empty dustbin. True hands-off cleaning.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Roborock+Q+Revo', link: 'https://www.fortress.com.hk/en/search?q=Roborock+Q+Revo',
+                        specs: { 'Navigation': 'LiDAR PreciSense', 'Suction': '5500 Pa', 'Station': 'Auto Wash & Empty', 'Mop Type': 'Dual Spinning, Auto-Lift' }
+                    },
+                    {
+                        id: 'c2', name: 'Xiaomi Robot Vacuum S10+', price: 2500, desc: 'Strong mapping and basic mopping at an unbeatable price.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Xiaomi+S10%2B', link: 'https://www.fortress.com.hk/en/search?q=Xiaomi+Robot+Vacuum+S10%2B',
+                        specs: { 'Navigation': 'LDS Laser', 'Suction': '4000 Pa', 'Station': 'Standard Charging Base', 'Mop Type': 'Dual Pressure Mopping' }
+                    }
+                ]
+            },
+            {
+                id: 'tv',
+                category: 'Entertainment',
+                name: '4K Gaming TV (48"-50")',
+                priority: 'Necessary',
+                context: 'At a 2m distance, 48"-50" provides an edge-to-edge view without eye strain. Both choices feature HDMI 2.1, 4K @ 120Hz, and VRR for maximum PS5 performance.',
+                choices: [
+                    {
+                        id: 'c1', name: 'LG OLED C4 48"', price: 10500, desc: 'The absolute best compact gaming TV. Perfect blacks, ultra-low input lag, and flawless PS5 integration.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=LG+OLED+C4', link: 'https://www.fortress.com.hk/en/search?q=LG+OLED+C4+48',
+                        specs: { 'Panel': 'OLED evo', 'Refresh Rate': '144Hz VRR', 'HDMI': '4x HDMI 2.1', 'Gaming': 'G-Sync, FreeSync, Game Optimizer' }
+                    },
+                    {
+                        id: 'c2', name: 'Sony Bravia 50" X85L', price: 5500, desc: 'Highly durable Full Array LED with native 120Hz. Features exclusive "Perfect for PS5" auto HDR.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Sony+X85L', link: 'https://www.fortress.com.hk/en/search?q=Sony+X85L+50',
+                        specs: { 'Panel': 'Full Array LED', 'Refresh Rate': '120Hz VRR', 'HDMI': '2x HDMI 2.1', 'Gaming': 'Auto HDR Tone Mapping for PS5' }
+                    }
+                ]
+            },
+            {
+                id: 'router',
+                category: 'Networking',
+                name: 'Wi-Fi 7 Mesh Router',
+                priority: 'Necessary',
+                context: 'Essential for your 2.5Gbps fiber plan. Thick concrete walls in HK apartments often block signals, so mesh capability ensures full speed in every room.',
+                choices: [
+                    {
+                        id: 'c1', name: 'TP-Link Deco BE65 (2-Pack)', price: 2400, desc: 'True Wi-Fi 7 mesh. Features four 2.5Gbps ports per node, maximizing your fiber connection.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Deco+BE65', link: 'https://www.fortress.com.hk/en/search?q=TP-Link+Deco+BE65',
+                        specs: { 'Standard': 'Wi-Fi 7 (802.11be)', 'Speed': 'BE11000 Tri-Band', 'Wired Ports': '4x 2.5Gbps per node', 'Mesh Capability': 'Dedicated Wireless/Wired Backhaul' }
+                    },
+                    {
+                        id: 'c2', name: 'ASUS RT-BE86U', price: 1800, desc: 'Legendary stability. A powerhouse single router with 2.5G ports and AiMesh capability.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=ASUS+BE86U', link: 'https://www.fortress.com.hk/en/search?q=ASUS+RT-BE86U',
+                        specs: { 'Standard': 'Wi-Fi 7 (802.11be)', 'Speed': 'BE6800 Dual-Band', 'Wired Ports': '1x 10G, 4x 2.5Gbps', 'Mesh Capability': 'AiMesh Expandable' }
+                    }
+                ]
+            },
+            {
+                id: 'rice_cooker',
+                category: 'Kitchen',
+                name: 'Rice Cooker',
+                priority: 'Necessary',
+                context: 'A staple for Asian cooking, also good for steaming vegetables or slow cooking.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Zojirushi IH Pressure', price: 2500, desc: 'Made in Japan, induction heating makes perfect rice every time, lasts decades.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Zojirushi+IH', link: 'https://www.fortress.com.hk/en/search?q=Zojirushi+IH+Pressure+Rice+Cooker',
+                        specs: { 'Heating': 'Induction Heating (IH) + Pressure', 'Inner Pan': 'Platinum Infused Non-stick', 'Capacity': '1.0L (1-5.5 Cups)', 'Origin': 'Made in Japan' }
+                    },
+                    {
+                        id: 'c2', name: 'Panasonic Microcomputer', price: 800, desc: 'Reliable, affordable, easy to clean and highly durable.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Panasonic+Rice+Cooker', link: 'https://www.fortress.com.hk/en/search?q=Panasonic+Rice+Cooker',
+                        specs: { 'Heating': 'Microcomputer Bottom Heat', 'Inner Pan': 'Bincho Charcoal Coated', 'Capacity': '1.0L (1-5.5 Cups)', 'Origin': 'Made in China/Malaysia' }
+                    }
+                ]
+            },
+            {
+                id: 'microwave',
+                category: 'Kitchen',
+                name: 'Microwave Oven',
+                priority: 'Necessary',
+                context: 'You have an oven for baking, but a microwave is essential for quick reheating.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Panasonic Flatbed Inverter', price: 1200, desc: 'No turntable means easier cleaning and fits larger dishes. Even heating.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Panasonic+Flatbed', link: 'https://www.fortress.com.hk/en/search?q=Panasonic+Flatbed+Microwave',
+                        specs: { 'Type': 'Flatbed Inverter', 'Power': '1000W', 'Capacity': '27L', 'Cleaning': 'Easy Wipe Flat Surface' }
+                    },
+                    {
+                        id: 'c2', name: 'Sharp Mechanical Dial', price: 500, desc: 'Basic, foolproof, practically impossible to break.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Sharp+Microwave', link: 'https://www.fortress.com.hk/en/search?q=Sharp+Microwave',
+                        specs: { 'Type': 'Turntable Mechanical', 'Power': '800W', 'Capacity': '20L', 'Cleaning': 'Standard Glass Tray' }
+                    }
+                ]
+            },
+            {
+                id: 'water_dispenser',
+                category: 'Kitchen',
+                name: 'Tabletop RO Water Dispenser',
+                priority: 'Necessary',
+                context: 'HK tap water travels through old pipes. A tabletop Reverse Osmosis (RO) machine provides purified instant hot/cold water without plumbing.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Philips ADD6921DG/90 RO', price: 3300, desc: 'Top tier filtration, instant heating and cooling, UV-C sterilization, and sleek design.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Philips+RO', link: 'https://www.fortress.com.hk/en/search?q=Philips+ADD6921',
+                        specs: { 'Filtration': 'AquaShield RO (1/10000 micron)', 'Temp Control': 'Instant Hot & Chilled', 'Tank': '6L Raw Water Tank', 'Extras': 'UV-C LED in tank' }
+                    },
+                    {
+                        id: 'c2', name: 'Toshiba TWP-TSR76WHK RO', price: 1800, desc: 'Great value tabletop RO purifier, precise temperature control, easy-to-change filters.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Toshiba+RO', link: 'https://www.fortress.com.hk/en/search?q=Toshiba+TWP-TSR76WHK',
+                        specs: { 'Filtration': '5-in-1 RO system', 'Temp Control': 'Instant Hot (Multiple Presets)', 'Tank': '4L Raw Water Tank', 'Extras': 'Smart Filter Life Reminder' }
+                    }
+                ]
+            },
+            {
+                id: 'hair_dryer',
+                category: 'Personal Care',
+                name: 'Hair Dryer',
+                priority: 'Necessary',
+                context: 'Daily use item, investing in a good one saves time and protects hair.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Dyson Supersonic', price: 3500, desc: 'Extremely fast drying, prevents heat damage, compact storage.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Dyson+Supersonic', link: 'https://www.fortress.com.hk/en/search?q=Dyson+Supersonic',
+                        specs: { 'Motor': 'Dyson V9 Digital Motor', 'Tech': 'Intelligent Heat Control', 'Attachments': 'Magnetic Styling Tools', 'Weight': '0.66kg' }
+                    },
+                    {
+                        id: 'c2', name: 'Panasonic Nanoe', price: 1200, desc: 'Adds moisture to hair, highly durable motor, excellent mid-range value.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Panasonic+Nanoe', link: 'https://www.fortress.com.hk/en/search?q=Panasonic+Nanoe+Hair+Dryer',
+                        specs: { 'Motor': 'AC Motor', 'Tech': 'nanoe™ Moisture Infusion', 'Attachments': 'Quick-dry Nozzle', 'Weight': '0.58kg' }
+                    }
+                ]
+            },
+            {
+                id: 'air_purifier',
+                category: 'Climate & Air',
+                name: 'Air Purifier',
+                priority: 'Good to Have',
+                context: 'HK air quality can fluctuate. Good for allergies and open kitchens.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Philips Series 3000i', price: 3200, desc: 'Strong CADR rate, catches fine particles and cooking odors effectively.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Philips+3000i', link: 'https://www.fortress.com.hk/en/search?q=Philips+Air+Purifier+3000i',
+                        specs: { 'CADR': '520 m³/h', 'Filter': 'NanoProtect HEPA + Active Carbon', 'Smart': 'Clean Home+ App', 'Sensors': 'PM2.5, Gas, Allergen' }
+                    },
+                    {
+                        id: 'c2', name: 'Xiaomi Smart Air Purifier 4', price: 1200, desc: 'Cheap replacement filters, smart integration, decent performance.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Xiaomi+Purifier+4', link: 'https://www.fortress.com.hk/en/search?q=Xiaomi+Air+Purifier+4',
+                        specs: { 'CADR': '400 m³/h', 'Filter': 'Xiaomi High-Efficiency Filter', 'Smart': 'Mi Home App / Voice', 'Sensors': 'PM2.5 Laser Sensor' }
+                    }
+                ]
+            },
+            {
+                id: 'fans',
+                category: 'Climate & Air',
+                name: 'Circulation Fans (x2)',
+                priority: 'Necessary',
+                context: 'Crucial for the two rooms to circulate AC or dehumidifier air.',
+                choices: [
+                    {
+                        id: 'c1', name: 'KDK DC Motor Stand Fans', price: 1600, desc: 'Price for 2. Silent operation, DC motor saves energy, legendary durability.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=KDK+DC+Fan', link: 'https://www.fortress.com.hk/en/search?q=KDK+DC+Fan',
+                        specs: { 'Motor': 'DC Motor', 'Noise Level': 'Ultra Quiet', 'Speed Settings': '8 Speeds', 'Durability': 'Exceptional Build Quality' }
+                    },
+                    {
+                        id: 'c2', name: 'Xiaomi Smart Standing Fan 2', price: 1000, desc: 'Price for 2. Slim profile fits tiny rooms, gentle breeze mode.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Xiaomi+Fan+2', link: 'https://www.fortress.com.hk/en/search?q=Xiaomi+Standing+Fan+2',
+                        specs: { 'Motor': 'DC Motor', 'Noise Level': 'Low', 'Speed Settings': '100 via App', 'Durability': 'Good Value Build' }
+                    }
+                ]
+            },
+            {
+                id: 'garment_care',
+                category: 'Cleaning',
+                name: 'Garment Steamer / Iron',
+                priority: 'Good to Have',
+                context: 'Quick wrinkle removal for work clothes without setting up an ironing board in a small space.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Philips Stand Steamer', price: 1500, desc: 'Dedicated station, high steam output, very durable.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Philips+Steamer', link: 'https://www.fortress.com.hk/en/search?q=Philips+Stand+Steamer',
+                        specs: { 'Type': 'Stand with Board', 'Steam Output': 'Up to 40g/min', 'Water Tank': '1.8L', 'Heat Up': '60 seconds' }
+                    },
+                    {
+                        id: 'c2', name: 'Panasonic Handheld Steamer', price: 400, desc: 'Compact, easy to store in a small apartment, fast heat-up.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Panasonic+Steamer', link: 'https://www.fortress.com.hk/en/search?q=Panasonic+Handheld+Steamer',
+                        specs: { 'Type': 'Handheld', 'Steam Output': 'Approx 11g/min', 'Water Tank': '50ml', 'Heat Up': '30 seconds' }
+                    }
+                ]
+            },
+            {
+                id: 'dishwasher',
+                category: 'Kitchen',
+                name: 'Tabletop Dishwasher',
+                priority: 'Good to Have',
+                context: 'Saves daily washing time for 1-2 people. Perfect for open kitchens without built-in space.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Panasonic NP-TFM1', price: 2800, desc: 'Classic HK apartment choice, compact, high-temperature sterilization.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Panasonic+Dishwasher', link: 'https://www.fortress.com.hk/en/search?q=Panasonic+Tabletop+Dishwasher',
+                        specs: { 'Install': 'Requires Tap Connection', 'Capacity': '18 items (2-3 people)', 'Temp': 'Up to 70°C Wash', 'Drying': 'Fan Drying' }
+                    },
+                    {
+                        id: 'c2', name: 'Toshiba DWS-22A', price: 1800, desc: 'No plumbing needed (built-in water tank), great value and portability.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Toshiba+Dishwasher', link: 'https://www.fortress.com.hk/en/search?q=Toshiba+Dishwasher',
+                        specs: { 'Install': 'Manual Water Tank Fill', 'Capacity': '22 items (2-3 people)', 'Temp': 'Up to 72°C Wash', 'Drying': 'Hot Air Drying' }
+                    }
+                ]
+            },
+            {
+                id: 'soundbar',
+                category: 'Entertainment',
+                name: 'Soundbar System',
+                priority: 'Good to Have',
+                context: 'Significantly upgrades TV audio. Crucial for movie watching in the living room.',
+                choices: [
+                    {
+                        id: 'c1', name: 'Sonos Beam (Gen 2)', price: 4000, desc: 'Premium Dolby Atmos sound, compact size perfect for 550 sqft, easily expandable.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Sonos+Beam', link: 'https://www.fortress.com.hk/en/search?q=Sonos+Beam+Gen+2',
+                        specs: { 'Channels': '3.0 (Virtual Atmos)', 'Subwoofer': 'Built-in (Expandable)', 'Connectivity': 'HDMI eARC, Wi-Fi', 'Smart': 'AirPlay 2, Voice Control' }
+                    },
+                    {
+                        id: 'c2', name: 'Samsung HW-Q600C', price: 2500, desc: 'Includes dedicated subwoofer, great value for immersive 3.1.2ch sound.',
+                        image: 'https://placehold.co/150x100/f8fafc/334155?text=Samsung+Q600C', link: 'https://www.fortress.com.hk/en/search?q=Samsung+HW-Q600C',
+                        specs: { 'Channels': '3.1.2 True Atmos', 'Subwoofer': 'Included Wireless Sub', 'Connectivity': 'HDMI eARC, Bluetooth', 'Smart': 'Q-Symphony (with Samsung TVs)' }
+                    }
+                ]
+            }
+        ];
+
+        // --- URL Routing Logic ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const compareId = urlParams.get('compare');
+
+        let state = {};
+
+        appliances.forEach(app => {
+            if (app.priority === 'Necessary') {
+                state[app.id] = 'c1';
+            } else {
+                state[app.id] = 'none';
+            }
+        });
+
+        let currentView = 'card';
+        let currentFilter = 'all';
+        const container = document.getElementById('applianceContainer');
+        const totalDisplay = document.getElementById('totalCostDisplay');
+        const headerTotal = document.getElementById('headerMiniTotal');
+        const progressBar = document.getElementById('budgetProgressBar');
+        const budgetStatus = document.getElementById('budgetStatus');
+        const categoryListEl = document.getElementById('categoryBreakdownList');
+        let chartInstance = null;
+        let previousTotal = 0;
+
+        const paletteHex = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#0ea5e9', '#64748b'];
+
+        // --- Helper: Animate Numbers ---
+        function animateValue(obj, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                // easeOutExpo
+                const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+                const currentVal = Math.floor(easeOut * (end - start) + start);
+                obj.innerHTML = `$${currentVal.toLocaleString()}`;
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerHTML = `$${end.toLocaleString()}`;
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // --- Tab Navigation Logic ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => {
+                el.classList.add('hidden');
+                el.classList.remove('block');
+            });
+            document.getElementById('tab-' + tabId).classList.remove('hidden');
+            document.getElementById('tab-' + tabId).classList.add('block');
+
+            ['overview', 'appliances', 'furniture'].forEach(id => {
+                const btn = document.getElementById('nav-' + id);
+                if (id === tabId) {
+                    btn.className = 'px-5 py-2 rounded-md text-sm font-bold bg-white text-blue-800 shadow-sm transition-all border border-gray-200';
+                } else {
+                    btn.className = 'px-5 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-white/50 transition-all border border-transparent';
+                }
+            });
+
+            if (tabId === 'overview' && chartInstance) {
+                chartInstance.resize();
+            }
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('categoryChart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: paletteHex,
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12, family: "'Inter', sans-serif" },
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                            padding: 12,
+                            titleFont: { size: 14, family: "'Inter', sans-serif" },
+                            bodyFont: { size: 14, font: 'bold', family: "'Inter', sans-serif" },
+                            callbacks: {
+                                label: function (context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('en-HK', { style: 'currency', currency: 'HKD', maximumFractionDigits: 0 }).format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        window.setView = function (view) {
+            currentView = view;
+            const btnCard = document.getElementById('btnCard');
+            const btnList = document.getElementById('btnList');
+
+            if (view === 'card') {
+                btnCard.className = 'px-4 py-2 text-sm font-bold text-blue-800 bg-white border border-transparent rounded shadow-sm focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all';
+                btnList.className = 'px-4 py-2 text-sm font-medium text-gray-600 bg-transparent border border-transparent rounded hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all';
+            } else {
+                btnList.className = 'px-4 py-2 text-sm font-bold text-blue-800 bg-white border border-transparent rounded shadow-sm focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all';
+                btnCard.className = 'px-4 py-2 text-sm font-medium text-gray-600 bg-transparent border border-transparent rounded hover:text-gray-900 focus:z-10 focus:ring-2 focus:ring-blue-500 transition-all';
+            }
+
+            renderContent();
+            calculateTotals();
+        };
+
+        function renderContent(filterOverride) {
+            if (filterOverride) currentFilter = filterOverride;
+            container.innerHTML = '';
+
+            if (currentView === 'card') {
+                container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+                appliances.forEach(app => {
+                    if (currentFilter !== 'all' && app.priority !== currentFilter) return;
+
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col transition-all duration-200 hover:shadow-md';
+
+                    let badgeClass = app.priority === 'Necessary' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-yellow-50 text-yellow-700 border border-yellow-200';
+
+                    card.innerHTML = `
+                        <div class="p-5 border-b border-gray-100 flex-grow">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-gray-900 leading-tight">${app.name}</h3>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${badgeClass}">
+                                    ${app.priority}
+                                </span>
+                            </div>
+                            <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3">${app.category}</p>
+                            <p class="text-sm text-gray-600 mb-4 leading-relaxed">${app.context}</p>
+                            
+                            <div class="space-y-3">
+                                <label class="choice-card block border rounded-lg p-3 cursor-pointer transition-colors ${state[app.id] === 'c1' ? 'selected' : 'border-gray-200 hover:border-blue-300'}">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center">
+                                            <input type="radio" name="${app.id}" value="c1" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" ${state[app.id] === 'c1' ? 'checked' : ''} onchange="updateSelection('${app.id}', 'c1')">
+                                            <span class="ml-2 block text-sm font-bold text-gray-900">Best Performance</span>
+                                        </div>
+                                        <span class="text-sm font-black text-blue-600">$${app.choices[0].price}</span>
+                                    </div>
+                                    <div class="flex items-start mt-2 ml-6">
+                                        <img src="${app.choices[0].image}" alt="${app.choices[0].name}" class="w-16 h-12 object-contain rounded mr-3 border border-gray-200 bg-white shadow-sm p-1">
+                                        <div>
+                                            <div class="text-xs text-gray-800 font-bold flex items-center gap-1">
+                                                ${app.choices[0].name}
+                                                <a href="${app.choices[0].link}" target="_blank" onclick="event.stopPropagation()" class="text-blue-500 hover:text-blue-700 ml-1 font-black" title="View on Fortress">↗</a>
+                                            </div>
+                                            <div class="mt-1 text-xs text-gray-500 leading-tight">${app.choices[0].desc}</div>
+                                        </div>
+                                    </div>
+                                </label>
+
+                                <label class="choice-card block border rounded-lg p-3 cursor-pointer transition-colors ${state[app.id] === 'c2' ? 'selected' : 'border-gray-200 hover:border-blue-300'}">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <div class="flex items-center">
+                                            <input type="radio" name="${app.id}" value="c2" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300" ${state[app.id] === 'c2' ? 'checked' : ''} onchange="updateSelection('${app.id}', 'c2')">
+                                            <span class="ml-2 block text-sm font-bold text-gray-900">Value & Durable</span>
+                                        </div>
+                                        <span class="text-sm font-black text-blue-600">$${app.choices[1].price}</span>
+                                    </div>
+                                    <div class="flex items-start mt-2 ml-6">
+                                        <img src="${app.choices[1].image}" alt="${app.choices[1].name}" class="w-16 h-12 object-contain rounded mr-3 border border-gray-200 bg-white shadow-sm p-1">
+                                        <div>
+                                            <div class="text-xs text-gray-800 font-bold flex items-center gap-1">
+                                                ${app.choices[1].name}
+                                                <a href="${app.choices[1].link}" target="_blank" onclick="event.stopPropagation()" class="text-blue-500 hover:text-blue-700 ml-1 font-black" title="View on Fortress">↗</a>
+                                            </div>
+                                            <div class="mt-1 text-xs text-gray-500 leading-tight">${app.choices[1].desc}</div>
+                                        </div>
+                                    </div>
+                                </label>
+                                
+                                <label class="flex items-center p-2 cursor-pointer rounded hover:bg-gray-50">
+                                    <input type="radio" name="${app.id}" value="none" class="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300" ${state[app.id] === 'none' ? 'checked' : ''} onchange="updateSelection('${app.id}', 'none')">
+                                    <span class="ml-2 block text-sm font-medium text-gray-500">Skip this item</span>
+                                </label>
+                            </div>
+
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <button onclick="openCompare('${app.id}')" class="w-full py-2.5 bg-gray-50 text-blue-700 rounded-lg text-sm font-bold hover:bg-blue-50 hover:border-blue-200 transition-colors flex justify-center items-center gap-2 border border-gray-200 shadow-sm">
+                                    <span>&#8644;</span> Compare Models & Specs
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } else {
+                container.className = 'space-y-8';
+                const itemsToDisplay = appliances.filter(app => currentFilter === 'all' || app.priority === currentFilter);
+                const grouped = {};
+                itemsToDisplay.forEach(app => {
+                    if (!grouped[app.category]) grouped[app.category] = [];
+                    grouped[app.category].push(app);
+                });
+
+                for (const category in grouped) {
+                    const section = document.createElement('div');
+                    let rowsHtml = '';
+                    grouped[category].forEach(app => {
+                        const isC1 = state[app.id] === 'c1' ? 'selected' : '';
+                        const isC2 = state[app.id] === 'c2' ? 'selected' : '';
+                        const isNone = state[app.id] === 'none' ? 'selected' : '';
+
+                        rowsHtml += `
+                            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors">
+                                <div class="mb-3 sm:mb-0 pr-4 flex-grow">
+                                    <div class="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                                        ${app.name}
+                                        <button onclick="openCompare('${app.id}')" class="text-xs font-bold bg-blue-50 text-blue-700 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 transition shadow-sm ml-2">Compare Specs</button>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1 leading-relaxed">${app.context}</div>
+                                </div>
+                                <select onchange="updateSelection('${app.id}', this.value)" class="block w-full sm:w-auto border-gray-300 rounded-lg shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 text-sm py-2.5 px-3 bg-white border cursor-pointer font-medium text-gray-700">
+                                    <option value="c1" ${isC1}>Best: ${app.choices[0].name} ($${app.choices[0].price})</option>
+                                    <option value="c2" ${isC2}>Value: ${app.choices[1].name} ($${app.choices[1].price})</option>
+                                    <option value="none" ${isNone}>Skip ($0)</option>
+                                </select>
+                            </div>
+                        `;
+                    });
+
+                    section.innerHTML = `
+                        <h3 class="text-lg font-bold text-blue-800 border-b-2 border-blue-100 pb-2 mb-3 uppercase tracking-wider">${category}</h3>
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            ${rowsHtml}
+                        </div>
+                    `;
+                    container.appendChild(section);
+                }
+            }
+        }
+
+        window.updateSelection = function (appId, choice) {
+            state[appId] = choice;
+            renderContent();
+            calculateTotals();
+        };
+
+        function calculateTotals() {
+            let total = 0;
+            let categoryTotals = {};
+            let itemsCount = 0;
+
+            appliances.forEach(app => {
+                if (currentFilter !== 'all' && app.priority !== currentFilter) return;
+
+                const choice = state[app.id];
+                if (choice !== 'none') {
+                    const price = choice === 'c1' ? app.choices[0].price : app.choices[1].price;
+                    total += price;
+                    itemsCount++;
+
+                    if (categoryTotals[app.category]) {
+                        categoryTotals[app.category] += price;
+                    } else {
+                        categoryTotals[app.category] = price;
+                    }
+                }
+            });
+
+            // Update main dashboard total with animation
+            animateValue(totalDisplay, previousTotal, total, 800);
+            previousTotal = total;
+
+            // Update Header Mini Total
+            headerTotal.innerHTML = `Total: $${total.toLocaleString()}`;
+
+            // Quick Stats Update
+            document.getElementById('quickStatItems').innerHTML = `${itemsCount} <span class="text-sm font-medium text-gray-500">appliances</span>`;
+
+            let remaining = 50000 - total;
+            const remainingEl = document.getElementById('quickStatRemaining');
+            if (remaining >= 0) {
+                remainingEl.innerHTML = `$${remaining.toLocaleString()}`;
+                remainingEl.className = "text-lg font-extrabold text-gray-800 tracking-tight";
+            } else {
+                remainingEl.innerHTML = `-$${Math.abs(remaining).toLocaleString()}`;
+                remainingEl.className = "text-lg font-extrabold text-red-600 tracking-tight";
+            }
+
+            let percentage = (total / 50000) * 100;
+            progressBar.style.width = `${Math.min(percentage, 100)}%`;
+            const cardAccent = document.getElementById('cardAccentBorder');
+
+            if (total < 30000) {
+                progressBar.className = 'bg-amber-400 h-full rounded-full progress-bar-fill';
+                cardAccent.className = 'absolute top-0 left-0 w-1 h-full bg-amber-400';
+                budgetStatus.innerHTML = `<span class="text-amber-500 text-lg">💡</span> <span class="text-amber-700">Below minimum target ($30k). Room to upgrade items.</span>`;
+                document.getElementById('quickStatStatus').innerHTML = `<span class="text-amber-600">Under Target</span>`;
+            } else if (total <= 50000) {
+                progressBar.className = 'bg-emerald-500 h-full rounded-full progress-bar-fill';
+                cardAccent.className = 'absolute top-0 left-0 w-1 h-full bg-emerald-500';
+                budgetStatus.innerHTML = `<span class="text-emerald-500 text-lg">✅</span> <span class="text-emerald-700 font-bold">Perfect! Within your $30k - $50k target range.</span>`;
+                document.getElementById('quickStatStatus').innerHTML = `<span class="text-emerald-600">On Target</span>`;
+            } else {
+                progressBar.className = 'bg-red-500 h-full rounded-full progress-bar-fill';
+                cardAccent.className = 'absolute top-0 left-0 w-1 h-full bg-red-500';
+                budgetStatus.innerHTML = `<span class="text-red-500 text-lg">⚠️</span> <span class="text-red-700 font-bold">Over budget by $${(total - 50000).toLocaleString()}. Consider downgrading.</span>`;
+                document.getElementById('quickStatStatus').innerHTML = `<span class="text-red-600">Over Budget</span>`;
+            }
+
+            // Update Breakdown List
+            categoryListEl.innerHTML = '';
+            let colorIndex = 0;
+
+            // Sort categories by highest spend
+            const sortedCategories = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+            for (const [cat, catTotal] of sortedCategories) {
+                const catPercentage = total > 0 ? ((catTotal / total) * 100).toFixed(1) : 0;
+                const barColor = paletteHex[colorIndex % paletteHex.length];
+
+                categoryListEl.innerHTML += `
+                    <li>
+                        <div class="flex justify-between items-end mb-1">
+                            <span class="font-bold text-gray-800 text-sm">${cat}</span>
+                            <div class="text-right">
+                                <span class="font-black text-gray-900">$${catTotal.toLocaleString()}</span>
+                                <span class="text-xs text-gray-400 font-medium ml-1">(${catPercentage}%)</span>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div class="h-full rounded-full progress-bar-fill" style="width: ${catPercentage}%; background-color: ${barColor}"></div>
+                        </div>
+                    </li>
+                `;
+                colorIndex++;
+            }
+            if (sortedCategories.length === 0) {
+                categoryListEl.innerHTML = `<li class="text-sm text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg">No categories selected.</li>`;
+            }
+
+            updateChart(categoryTotals);
+        }
+
+        function updateChart(categoryTotals) {
+            if (!chartInstance) return;
+            const labels = Object.keys(categoryTotals);
+            const data = Object.values(categoryTotals);
+
+            // Sort data to match the breakdown list order
+            const sortedEntries = Object.entries(categoryTotals).sort((a, b) => b[1] - a[1]);
+
+            chartInstance.data.labels = sortedEntries.map(e => e[0]);
+            chartInstance.data.datasets[0].data = sortedEntries.map(e => e[1]);
+            chartInstance.update();
+        }
+
+        document.getElementById('filterContainer').addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                document.querySelectorAll('#filterContainer button').forEach(btn => {
+                    btn.classList.remove('bg-gray-800', 'text-white', 'shadow-sm', 'bg-red-600', 'bg-yellow-600');
+                    if (btn.dataset.filter === 'Necessary') {
+                        btn.className = 'px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-100 transition-colors';
+                    } else if (btn.dataset.filter === 'Good to Have') {
+                        btn.className = 'px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-sm font-medium hover:bg-yellow-100 transition-colors';
+                    } else {
+                        btn.className = 'px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors';
+                    }
+                });
+
+                if (e.target.dataset.filter === 'all') {
+                    e.target.className = 'px-4 py-2 bg-gray-800 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors shadow-sm';
+                } else if (e.target.dataset.filter === 'Necessary') {
+                    e.target.className = 'px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors shadow-sm';
+                } else {
+                    e.target.className = 'px-4 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors shadow-sm';
+                }
+
+                renderContent(e.target.dataset.filter);
+                calculateTotals();
+            }
+        });
+
+        // --- View & New Tab Routing Logic ---
+        window.openCompare = function (appId) {
+            window.open(window.location.pathname + '?compare=' + appId, '_blank');
+        };
+
+        function renderCompareView(appId) {
+            const app = appliances.find(a => a.id === appId);
+            if (!app) return;
+
+            const c1 = app.choices[0];
+            const c2 = app.choices[1];
+
+            let specsHtml = '';
+            const allKeys = [...new Set([...Object.keys(c1.specs || {}), ...Object.keys(c2.specs || {})])];
+
+            allKeys.forEach(key => {
+                specsHtml += `
+                    <tr class="border-b border-gray-100">
+                        <td class="py-3 px-4 text-sm font-bold text-gray-800 bg-gray-50 w-1/3">${key}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600 w-1/3 bg-white">${c1.specs[key] || '-'}</td>
+                        <td class="py-3 px-4 text-sm text-gray-600 w-1/3 bg-white">${c2.specs[key] || '-'}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('compareView').innerHTML = `
+                <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200 mt-8">
+                    <div class="bg-blue-700 p-6 text-white flex justify-between items-center shadow-inner">
+                        <div>
+                            <h2 class="text-2xl font-extrabold tracking-tight">Comparing: ${app.name}</h2>
+                            <p class="text-blue-100 text-sm mt-1 font-medium">${app.category} | Priority: ${app.priority}</p>
+                        </div>
+                        <button onclick="window.close()" class="bg-white text-blue-700 px-5 py-2 rounded-lg text-sm font-bold hover:bg-gray-100 transition shadow-sm border border-transparent">Close Tab</button>
+                    </div>
+                    
+                    <div class="p-8 bg-gray-50">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                            <!-- Choice 1 -->
+                            <div class="flex flex-col items-center text-center bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1.5 bg-blue-500"></div>
+                                <span class="bg-blue-50 text-blue-800 text-xs font-black px-3 py-1 rounded border border-blue-200 uppercase tracking-wide mb-6">Best Performance</span>
+                                <img src="${c1.image}" class="w-full h-48 object-contain mb-6 p-2 rounded-lg">
+                                <h3 class="text-xl font-bold text-gray-900">${c1.name}</h3>
+                                <div class="text-4xl font-black text-blue-600 my-3">$${c1.price} <span class="text-base text-gray-400 font-medium">HKD</span></div>
+                                <p class="text-sm text-gray-600 mb-8 flex-grow leading-relaxed">${c1.desc}</p>
+                                <a href="${c1.link}" target="_blank" class="w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition shadow-md">View on Fortress ↗</a>
+                            </div>
+                            <!-- Choice 2 -->
+                            <div class="flex flex-col items-center text-center bg-white p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                                <div class="absolute top-0 left-0 w-full h-1.5 bg-yellow-400"></div>
+                                <span class="bg-yellow-50 text-yellow-800 text-xs font-black px-3 py-1 rounded border border-yellow-200 uppercase tracking-wide mb-6">Value & Durable</span>
+                                <img src="${c2.image}" class="w-full h-48 object-contain mb-6 p-2 rounded-lg">
+                                <h3 class="text-xl font-bold text-gray-900">${c2.name}</h3>
+                                <div class="text-4xl font-black text-blue-600 my-3">$${c2.price} <span class="text-base text-gray-400 font-medium">HKD</span></div>
+                                <p class="text-sm text-gray-600 mb-8 flex-grow leading-relaxed">${c2.desc}</p>
+                                <a href="${c2.link}" target="_blank" class="w-full py-3 bg-gray-900 text-white font-bold rounded-lg hover:bg-gray-800 transition shadow-md">View on Fortress ↗</a>
+                            </div>
+                        </div>
+
+                        <div class="bg-white p-8 rounded-xl border border-gray-200 shadow-sm mb-10">
+                            <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                                <span class="text-blue-600">📊</span> Technical Specifications
+                            </h3>
+                            <div class="overflow-hidden rounded-lg border border-gray-200">
+                                <table class="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 border-b border-gray-200">
+                                            <th class="py-4 px-4 font-bold text-gray-800 w-1/3 text-sm uppercase tracking-wide">Feature</th>
+                                            <th class="py-4 px-4 font-bold text-blue-800 w-1/3 text-sm">${c1.name}</th>
+                                            <th class="py-4 px-4 font-bold text-yellow-800 w-1/3 text-sm">${c2.name}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${specsHtml}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Gemini Feature -->
+                        <div class="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-8 border border-indigo-100 shadow-md">
+                            <div class="flex items-start gap-4 mb-6">
+                                <div class="w-12 h-12 bg-indigo-600 text-white rounded-full flex items-center justify-center font-bold text-2xl shadow-md flex-shrink-0">✨</div>
+                                <div>
+                                    <h3 class="text-xl font-bold text-indigo-900 tracking-tight">Ask the AI Consultant</h3>
+                                    <p class="text-sm text-indigo-700 mt-1 leading-relaxed">Powered by Gemini. Ask about your specific needs regarding these two models (e.g., "I have pets, which vacuum is better?" or "Does the value option have enough capacity for 3 people?").</p>
+                                </div>
+                            </div>
+                            
+                            <div id="geminiChatHistory" class="space-y-4 mb-4 max-h-96 overflow-y-auto p-6 bg-white rounded-xl border border-indigo-200 text-sm hidden shadow-inner">
+                            </div>
+                            
+                            <div class="flex gap-3 mt-4">
+                                <input type="text" id="geminiInput" placeholder="Type your specific question here..." class="flex-grow border border-indigo-200 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 px-5 py-3 text-sm font-medium" onkeypress="if(event.key === 'Enter') sendGeminiQuery('${appId}')">
+                                <button onclick="sendGeminiQuery('${appId}')" id="geminiBtn" class="bg-indigo-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-indigo-700 transition shadow-md whitespace-nowrap">Ask AI</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function fetchWithRetry(url, options, retries = 5) {
+            const delays = [1000, 2000, 4000, 8000, 16000];
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    return await response.json();
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                    await new Promise(res => setTimeout(res, delays[i]));
+                }
+            }
+        }
+
+        window.sendGeminiQuery = async function (appId) {
+            const inputEl = document.getElementById('geminiInput');
+            const btnEl = document.getElementById('geminiBtn');
+            const historyEl = document.getElementById('geminiChatHistory');
+            const query = inputEl.value.trim();
+
+            if (!query) return;
+
+            const app = appliances.find(a => a.id === appId);
+            const context = `You are an expert home appliance consultant in Hong Kong. The user is outfitting an apartment and is comparing two specific appliances:
+1. ${app.choices[0].name} (Price: $${app.choices[0].price} HKD). Description: ${app.choices[0].desc}. Specs: ${JSON.stringify(app.choices[0].specs)}
+2. ${app.choices[1].name} (Price: $${app.choices[1].price} HKD). Description: ${app.choices[1].desc}. Specs: ${JSON.stringify(app.choices[1].specs)}
+User's Question: "${query}"
+Provide concise, helpful, and highly specific advice based on their question. Suggest alternatives if they ask for them. Keep responses formatted cleanly and under 150 words.`;
+
+            // Update UI
+            inputEl.value = '';
+            btnEl.disabled = true;
+            btnEl.innerHTML = 'Thinking...';
+            historyEl.classList.remove('hidden');
+
+            historyEl.innerHTML += `
+                <div class="flex justify-end">
+                    <div class="bg-indigo-100 text-indigo-900 px-5 py-3 rounded-2xl rounded-tr-sm max-w-[85%] font-medium shadow-sm">
+                        ${query}
+                    </div>
+                </div>
+            `;
+            historyEl.scrollTop = historyEl.scrollHeight;
+
+            const apiKey = "";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: query }] }],
+                systemInstruction: { parts: [{ text: context }] }
+            };
+
+            try {
+                const response = await fetchWithRetry(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const replyText = response.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response.";
+
+                // Simple formatting for bold text from markdown
+                const formattedReply = replyText.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-900">$1</strong>');
+
+                historyEl.innerHTML += `
+                    <div class="flex justify-start">
+                        <div class="bg-gray-100 text-gray-800 px-5 py-4 rounded-2xl rounded-tl-sm max-w-[85%] whitespace-pre-line shadow-sm border border-gray-200 leading-relaxed">
+                            ${formattedReply}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                historyEl.innerHTML += `
+                    <div class="flex justify-start">
+                        <div class="bg-red-50 text-red-600 px-5 py-3 rounded-2xl rounded-tl-sm border border-red-200 text-sm font-bold max-w-[85%]">
+                            Error connecting to the AI consultant. Please try again later.
+                        </div>
+                    </div>
+                `;
+            } finally {
+                btnEl.disabled = false;
+                btnEl.innerHTML = 'Ask AI';
+                historyEl.scrollTop = historyEl.scrollHeight;
+            }
+        };
+
+        // --- Initialization ---
+        if (compareId) {
+            // Document title update
+            document.title = "Compare: " + (appliances.find(a => a.id === compareId)?.name || 'Appliance');
+            document.querySelector('header').style.display = 'none'; // hide main header in compare tab
+            document.getElementById('mainDashboard').style.display = 'none';
+            document.getElementById('compareView').style.display = 'block';
+            renderCompareView(compareId);
+        } else {
+            initChart();
+            renderContent();
+            calculateTotals();
+        }
+
+    </script>
+</body>
+
+</html>
