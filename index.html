@@ -55,6 +55,8 @@
         html.dark table td, html.dark table th { border-color: #334155 !important; }
         html.dark .choice-card { border-color: #334155 !important; }
         html.dark .choice-card.active { border-color: #3b82f6 !important; background-color: rgba(59,130,246,.12) !important; }
+        html.dark .note-area textarea { background-color: #0f172a !important; border-color: #334155 !important; color: #e2e8f0 !important; }
+        html.dark .wish-btn:not(.active) { color: #475569 !important; }
         html.dark .score-bar-track { background: #334155 !important; }
         html.dark .modal-box { background-color: #1e293b !important; }
         html.dark .hover\:bg-gray-50:hover { background-color: rgba(30,41,59,.6) !important; }
@@ -155,19 +157,53 @@
         .score-bar-track { background:#e5e7eb; border-radius:999px; height:7px; overflow:hidden; }
         .score-bar-c1 { background:#3b82f6; height:100%; border-radius:999px; }
         .score-bar-c2 { background:#f59e0b; height:100%; border-radius:999px; }
+        .score-bar-c3 { background:#10b981; height:100%; border-radius:999px; }
 
         /* Verdict banner */
         .verdict-c1 { background:linear-gradient(135deg,#1e40af,#3b82f6); }
         .verdict-c2 { background:linear-gradient(135deg,#92400e,#f59e0b); }
         .verdict-tie { background:linear-gradient(135deg,#065f46,#10b981); }
+        .verdict-c3 { background:linear-gradient(135deg,#065f46,#10b981); }
 
         /* Tooltip */
         .has-tip { position:relative; cursor:help; }
         .tip { display:none; position:absolute; bottom:calc(100%+6px); left:50%; transform:translateX(-50%); white-space:nowrap; background:#1f2937; color:#fff; font-size:11px; font-weight:600; padding:4px 9px; border-radius:6px; z-index:50; pointer-events:none; }
         .has-tip:hover .tip { display:block; }
 
+        /* Status badges */
+        .status-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:999px; cursor:pointer; transition:all .15s; text-transform:uppercase; letter-spacing:.5px; }
+        .status-researching { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+        .status-decided { background:#fefce8; color:#a16207; border:1px solid #fde68a; }
+        .status-ordered { background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; }
+        .status-delivered { background:#ecfdf5; color:#047857; border:1px solid #6ee7b7; }
+        html.dark .status-researching { background:rgba(59,130,246,.15); color:#60a5fa; border-color:rgba(59,130,246,.3); }
+        html.dark .status-decided { background:rgba(234,179,8,.12); color:#fbbf24; border-color:rgba(234,179,8,.3); }
+        html.dark .status-ordered { background:rgba(34,197,94,.12); color:#4ade80; border-color:rgba(34,197,94,.3); }
+        html.dark .status-delivered { background:rgba(16,185,129,.15); color:#34d399; border-color:rgba(16,185,129,.3); }
+
+        /* Wishlist star */
+        .wish-btn { transition:transform .15s,color .15s; cursor:pointer; }
+        .wish-btn:hover { transform:scale(1.2); }
+        .wish-btn.active { color:#f59e0b !important; }
+
+        /* Notes */
+        .note-area { transition:max-height .25s ease, opacity .2s ease; max-height:0; opacity:0; overflow:hidden; }
+        .note-area.open { max-height:200px; opacity:1; }
+
         /* Responsive utility */
         @media(max-width:640px) { .modal-box { max-width:100%; border-radius:.75rem 0.75rem 0 0; top:auto; bottom:0; left:0; transform:none; width:100%; } }
+
+        /* Print styles */
+        @media print {
+            body { background:#fff !important; color:#000 !important; font-size:11px; }
+            header, #toastContainer, #loginOverlay, .modal-bd, .modal-box, #mainNav, .qty-btn, .filter-btn, .cat-filter-btn, .furn-filter-btn, .view-btn, #darkModeToggle, button, .chart-container, #compareView { display:none !important; }
+            #mainDashboard { display:block !important; }
+            .tab-pane { display:block !important; page-break-inside:avoid; }
+            .bg-white { background:#fff !important; box-shadow:none !important; }
+            .rounded-2xl { border-radius:4px !important; }
+            #printShoppingList { display:block !important; }
+            .no-print { display:none !important; }
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen pb-16">
@@ -303,10 +339,11 @@
                     <p id="fetchedSourceUrl" class="text-xs text-gray-400 truncate"></p>
                 </div>
             </div>
+            <div id="duplicateWarning" class="hidden bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700"></div>
             <div class="grid grid-cols-1 gap-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedName">Product Name *</label>
-                    <input type="text" id="fetchedName" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product name">
+                    <input type="text" id="fetchedName" oninput="checkDuplicateName(this.value)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product name">
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedDesc">Description</label>
@@ -314,15 +351,34 @@
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedPrice">Price (HKD) *</label>
-                        <input type="number" id="fetchedPrice" placeholder="e.g. 3500" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product price">
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedPrice">Price *</label>
+                        <div class="flex gap-1.5">
+                            <input type="number" id="fetchedPrice" placeholder="e.g. 3500" oninput="convertCurrency()" class="flex-grow border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product price">
+                            <select id="fetchedCurrency" onchange="convertCurrency()" class="w-20 border border-gray-200 rounded-xl px-2 py-2.5 text-xs font-bold focus:border-violet-500 outline-none bg-gray-50" aria-label="Currency">
+                                <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option><option value="GBP">GBP</option><option value="EUR">EUR</option><option value="JPY">JPY</option>
+                            </select>
+                        </div>
+                        <p id="currencyConvert" class="text-xs text-gray-400 mt-1 hidden"></p>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedCategory">Category *</label>
-                        <input type="text" id="fetchedCategory" placeholder="e.g. Kitchen" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Category">
+                        <input type="text" id="fetchedCategory" placeholder="e.g. Kitchen" list="categoryDatalist" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Category">
+                        <datalist id="categoryDatalist"></datalist>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedAddMode">Add as</label>
+                    <select id="fetchedAddMode" onchange="toggleExistingItemSelect()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Add mode">
+                        <option value="new">🆕 New standalone item</option>
+                        <option value="existing">➕ Add as comparison model under existing item</option>
+                    </select>
+                </div>
+                <div id="existingItemRow" class="hidden">
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="existingItemSelect">Add under which item?</label>
+                    <select id="existingItemSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Select existing item"></select>
+                    <p class="text-xs text-gray-400 mt-1">This product will appear as a comparison choice alongside existing models.</p>
+                </div>
+                <div id="newItemFields" class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedTab">Add to Tab</label>
                         <select id="fetchedTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Tab"><option value="appliances">Appliances</option><option value="furniture">Furniture</option></select>
@@ -342,6 +398,82 @@
     </div>
 </div>
 
+<!-- ===================== ADD ITEM MODAL ===================== -->
+<div id="addItemModal" class="hidden">
+    <div class="modal-bd" onclick="closeAddItemModal()"></div>
+    <div class="modal-box bg-white shadow-2xl">
+        <div class="bg-blue-700 p-5 text-white flex justify-between items-center rounded-t-2xl">
+            <div><h2 class="text-lg font-bold" id="addItemTitle">➕ Add New Item</h2><p class="text-blue-200 text-xs mt-0.5">Add a new appliance type or furniture category</p></div>
+            <button onclick="closeAddItemModal()" class="text-white/70 hover:text-white text-2xl font-bold leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition" aria-label="Close">×</button>
+        </div>
+        <div class="p-6 space-y-5">
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">What would you like to add?</label>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="addModeButtons">
+                    <button onclick="setAddMode('type')" id="addModeType" class="p-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-left transition hover:bg-blue-100">
+                        <span class="text-sm font-bold text-blue-800 block">📦 New Appliance Type</span>
+                        <span class="text-xs text-blue-600">e.g., "Air Fryer" under Kitchen</span>
+                    </button>
+                    <button onclick="setAddMode('category')" id="addModeCategory" class="p-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-left transition hover:bg-gray-100">
+                        <span class="text-sm font-bold text-gray-800 block">🏷 New Category</span>
+                        <span class="text-xs text-gray-500">e.g., "Laundry" or "Bathroom"</span>
+                    </button>
+                </div>
+            </div>
+            <!-- New Category fields -->
+            <div id="addCategoryFields" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newCategoryName">Category Name *</label>
+                    <input type="text" id="newCategoryName" placeholder="e.g. Laundry, Bathroom, Storage" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50" aria-label="New category name">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newCategoryTab">Tab</label>
+                    <select id="newCategoryTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50"><option value="appliances">Appliances</option><option value="furniture">Furniture</option></select>
+                </div>
+                <p class="text-xs text-gray-400">After creating the category, you can add items to it from the "Add" button or via URL import.</p>
+            </div>
+            <!-- New Appliance Type fields -->
+            <div id="addTypeFields" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newTypeName">Item Name *</label>
+                    <input type="text" id="newTypeName" placeholder="e.g. Air Fryer, Smart Lock, Curtains" oninput="checkAddTypeDuplicate(this.value)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50" aria-label="Item name">
+                    <div id="addTypeDuplicateWarn" class="hidden mt-1.5 text-xs text-amber-600 font-medium"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newTypeCategory">Category *</label>
+                        <input type="text" id="newTypeCategory" placeholder="e.g. Kitchen" list="addTypeCatDatalist" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50" aria-label="Category">
+                        <datalist id="addTypeCatDatalist"></datalist>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newTypePriority">Priority</label>
+                        <select id="newTypePriority" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50"><option value="Good to Have">Good to Have</option><option value="Necessary">Necessary</option></select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="newTypeContext">Description / Context</label>
+                    <textarea id="newTypeContext" rows="2" placeholder="Why is this item needed?" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50 resize-none" aria-label="Context"></textarea>
+                </div>
+                <fieldset class="border border-gray-200 rounded-xl p-4">
+                    <legend class="text-xs font-bold text-gray-500 uppercase tracking-wide px-2">First Model / Choice (optional — can add via URL later)</legend>
+                    <div class="space-y-3 mt-2">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelName">Model Name</label><input type="text" id="newTypeModelName" placeholder="e.g. Philips HD9270" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                            <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelPrice">Price (HKD)</label><input type="number" id="newTypeModelPrice" placeholder="2500" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                        </div>
+                        <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelLink">Product URL</label><input type="text" id="newTypeModelLink" placeholder="https://..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                    </div>
+                </fieldset>
+            </div>
+            <div id="addItemError" class="hidden text-red-600 text-sm font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"></div>
+        </div>
+        <div class="border-t border-gray-100 px-5 py-4 flex justify-end gap-2.5 bg-gray-50 rounded-b-2xl">
+            <button onclick="closeAddItemModal()" class="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition">Cancel</button>
+            <button onclick="confirmAddItem()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm">Add to Catalog</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===================== HEADER ===================== -->
 <header class="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
@@ -356,6 +488,10 @@
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+                <div class="relative">
+                    <input type="text" id="globalSearch" oninput="handleSearch(this.value)" placeholder="Search items..." class="w-44 sm:w-52 border border-gray-200 rounded-xl px-3 py-2 pl-8 text-xs focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50 transition" aria-label="Search items">
+                    <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">🔍</span>
+                </div>
                 <nav class="flex space-x-0.5 bg-gray-100 p-1 rounded-xl border border-gray-200" id="mainNav" role="navigation" aria-label="Main navigation">
                     <button onclick="switchTab('overview')" id="nav-overview" class="tab-btn active px-4 py-2 rounded-lg text-sm font-bold bg-white text-blue-800 shadow-sm transition-all border border-gray-200" aria-label="Overview">Overview</button>
                     <button onclick="switchTab('appliances')" id="nav-appliances" class="tab-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-white/60 transition-all relative" aria-label="Appliances">
@@ -367,9 +503,10 @@
                 </nav>
                 <div class="flex gap-1.5 items-center">
                     <button id="darkModeToggle" onclick="toggleDarkMode()" class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 text-base hover:bg-gray-100 transition" aria-label="Toggle dark/light mode" title="Toggle dark/light mode">🌙</button>
+                    <button onclick="printShoppingList()" class="px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 transition" aria-label="Print shopping list" title="Print shopping list">🖨</button>
                     <button onclick="exportSetup()" class="px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold hover:bg-emerald-100 transition" aria-label="Export setup">↑ Export</button>
                     <label class="px-3 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold hover:bg-amber-100 transition cursor-pointer" aria-label="Import setup">↓ Import<input type="file" accept=".json" onchange="importSetup(event)" class="hidden" aria-label="Import JSON file"></label>
-                    <button onclick="openSettings()" class="px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 transition" aria-label="Settings">⚙ Settings</button>
+                    <button onclick="openSettings()" class="px-3 py-2 bg-gray-100 text-gray-600 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-200 transition" aria-label="Settings">⚙</button>
                 </div>
             </div>
         </div>
@@ -429,39 +566,49 @@
                     <ul id="categoryBreakdownList" class="space-y-4"></ul>
                 </div>
             </div>
-            <div class="lg:col-span-5 bg-white p-7 rounded-2xl shadow-sm border border-gray-100 sticky top-20 afu delay-3">
-                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">Spending Distribution</h2>
-                <div class="chart-container w-full"><canvas id="categoryChart" aria-label="Spending distribution chart"></canvas></div>
-                <p class="text-xs text-gray-400 text-center mt-6 pt-4 border-t border-gray-100">Updates in real-time as you add items to your cart</p>
+            <div class="lg:col-span-5 space-y-7 afu delay-3">
+                <div class="bg-white p-7 rounded-2xl shadow-sm border border-gray-100 sticky top-20">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 text-center">Spending Distribution</h2>
+                    <div class="chart-container w-full"><canvas id="categoryChart" aria-label="Spending distribution chart"></canvas></div>
+                    <p class="text-xs text-gray-400 text-center mt-6 pt-4 border-t border-gray-100">Updates in real-time as you add items to your cart</p>
+                </div>
+                <div class="bg-white p-7 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-5 flex items-center gap-2 border-b border-gray-100 pb-4">🏬 Shopping Trip Planner</h3>
+                    <div id="storeGroupingList" class="space-y-4"><p class="text-sm text-gray-400 italic text-center py-4">Add items to see where to buy them</p></div>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- APPLIANCES TAB -->
     <section id="tab-appliances" class="tab-pane hidden" aria-label="Appliances">
-        <div class="bg-white rounded-2xl shadow-sm p-5 mb-5 border border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div class="flex flex-wrap gap-2" id="filterContainer">
-                <button class="filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm transition-all" data-filter="all" aria-label="All items">All Items</button>
-                <button class="filter-btn px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-all" data-filter="Necessary" aria-label="Necessary only">🔴 Necessary</button>
-                <button class="filter-btn px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-xl text-sm font-medium hover:bg-yellow-100 transition-all" data-filter="Good to Have" aria-label="Good to have">🟡 Good to Have</button>
+        <div class="bg-white rounded-2xl shadow-sm p-5 mb-5 border border-gray-100 space-y-3">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex flex-wrap gap-2" id="filterContainer">
+                    <button class="filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm transition-all" data-filter="all" aria-label="All items">All Items</button>
+                    <button class="filter-btn px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-all" data-filter="Necessary" aria-label="Necessary only">🔴 Necessary</button>
+                    <button class="filter-btn px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-xl text-sm font-medium hover:bg-yellow-100 transition-all" data-filter="Good to Have" aria-label="Good to have">🟡 Good to Have</button>
+                    <button class="filter-btn px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-medium hover:bg-amber-100 transition-all" data-filter="wishlist" aria-label="Wishlist only">⭐ Wishlist</button>
+                </div>
+                <div class="flex gap-2 items-center">
+                    <div class="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200 gap-0.5" role="group" aria-label="View toggle">
+                        <button type="button" onclick="setView('card')" id="btnCard" class="view-btn active px-4 py-2 text-sm font-bold text-blue-800 bg-white rounded-lg shadow-sm transition-all" aria-label="Card view">⊞ Cards</button>
+                        <button type="button" onclick="setView('list')" id="btnList" class="view-btn px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:text-gray-800 transition-all" aria-label="List view">☰ List</button>
+                    </div>
+                    <button onclick="openAddItemModal('appliances')" class="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm" aria-label="Add new appliance">+ Add</button>
+                </div>
             </div>
-            <div class="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200 gap-0.5" role="group" aria-label="View toggle">
-                <button type="button" onclick="setView('card')" id="btnCard" class="view-btn active px-4 py-2 text-sm font-bold text-blue-800 bg-white rounded-lg shadow-sm transition-all" aria-label="Card view">⊞ Cards</button>
-                <button type="button" onclick="setView('list')" id="btnList" class="view-btn px-4 py-2 text-sm font-medium text-gray-500 rounded-lg hover:text-gray-800 transition-all" aria-label="List view">☰ List</button>
-            </div>
+            <div class="flex flex-wrap gap-1.5" id="appCategoryFilter"></div>
         </div>
         <div id="applianceContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
     </section>
 
     <!-- FURNITURE TAB -->
     <section id="tab-furniture" class="tab-pane hidden" aria-label="Furniture">
-        <div class="bg-white rounded-2xl shadow-sm p-5 mb-5 border border-gray-100">
-            <div class="flex flex-wrap gap-2" id="furnitureFilterContainer">
-                <button class="furn-filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm" data-filter="all" aria-label="All rooms">All Rooms</button>
-                <button class="furn-filter-btn px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-sm font-medium hover:bg-blue-100 transition-all" data-filter="Living Room" aria-label="Living room">🛋 Living Room</button>
-                <button class="furn-filter-btn px-4 py-2 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-sm font-medium hover:bg-purple-100 transition-all" data-filter="Bedroom" aria-label="Bedroom">🛏 Bedroom</button>
-                <button class="furn-filter-btn px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-medium hover:bg-amber-100 transition-all" data-filter="Dining Room" aria-label="Dining room">🍽 Dining Room</button>
-                <button class="furn-filter-btn px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-xl text-sm font-medium hover:bg-teal-100 transition-all" data-filter="Study / Work" aria-label="Study">💻 Study / Work</button>
+        <div class="bg-white rounded-2xl shadow-sm p-5 mb-5 border border-gray-100 space-y-3">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="flex flex-wrap gap-2" id="furnitureFilterContainer"></div>
+                <button onclick="openAddItemModal('furniture')" class="px-3.5 py-2 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm flex-shrink-0" aria-label="Add new furniture">+ Add</button>
             </div>
         </div>
         <div id="furnitureContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
@@ -748,10 +895,23 @@ const furnitureItems = [
 // ============================================================
 // STATE
 // ============================================================
-const DEFAULT_STATE = { cart:{}, budgetMin:30000, budgetMax:50000, apiKey:'', customItems:[] };
+const DEFAULT_STATE = { cart:{}, budgetMin:30000, budgetMax:50000, apiKey:'', customItems:[], addedChoices:{}, customCategories:[], wishlist:[], itemStatus:{}, notes:{} };
 let appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+let _undoStack = [];
+const CURRENCY_RATES = { HKD:1, USD:7.8, RMB:1.08, CNY:1.08, GBP:9.8, EUR:8.5, JPY:0.052 };
 function saveState() { try { localStorage.setItem('aptDash_v3', JSON.stringify(appState)); } catch(e){} }
 function loadState() { try { const s=localStorage.getItem('aptDash_v3'); if(s) appState={...DEFAULT_STATE,...JSON.parse(s)}; } catch(e){} }
+function pushUndo(label){
+    _undoStack.push({label,snapshot:JSON.stringify(appState)});
+    if(_undoStack.length>20) _undoStack.shift();
+}
+function doUndo(){
+    if(!_undoStack.length) return;
+    const u=_undoStack.pop();
+    appState=JSON.parse(u.snapshot);
+    saveState(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`Undone: ${u.label}`,'info');
+}
 
 // ============================================================
 // AUTH
@@ -780,15 +940,16 @@ function checkSecurityAnswer(a){
 // ============================================================
 // TOAST
 // ============================================================
-function showToast(msg, type='success'){
+function showToast(msg, type='success', undoable=false){
     const colors = { success:'bg-emerald-600', error:'bg-red-600', info:'bg-blue-600', warning:'bg-amber-500' };
     const icons  = { success:'✓', error:'✕', info:'ℹ', warning:'⚠' };
     const tc = document.getElementById('toastContainer');
     const t  = document.createElement('div');
-    t.className = `toast ${colors[type]||colors.info} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-3 max-w-xs`;
-    t.innerHTML = `<span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs flex-shrink-0">${icons[type]||'ℹ'}</span>${msg}`;
+    t.className = `toast ${colors[type]||colors.info} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-bold flex items-center gap-3 max-w-sm`;
+    const undoBtn=undoable?`<button onclick="doUndo();this.closest('.toast').remove()" class="ml-2 px-2 py-0.5 bg-white/20 rounded-lg text-xs font-bold hover:bg-white/30 transition flex-shrink-0">Undo</button>`:'';
+    t.innerHTML = `<span class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-xs flex-shrink-0">${icons[type]||'ℹ'}</span><span class="flex-grow">${msg}</span>${undoBtn}`;
     tc.appendChild(t);
-    setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),300); }, 3200);
+    setTimeout(()=>{ t.classList.add('out'); setTimeout(()=>t.remove(),300); }, undoable?5000:3200);
 }
 
 // ============================================================
@@ -828,10 +989,11 @@ function addCustomItem(){
     refreshCustomItemsList(); renderContent(); renderFurniture(); calculateTotals(); showToast(`"${name}" added to catalog`);
 }
 function removeCustomItem(id){
+    pushUndo('remove item');
     const name=appState.customItems.find(i=>i.id===id)?.name||'Item';
     appState.customItems=appState.customItems.filter(i=>i.id!==id);
     Object.keys(appState.cart).forEach(k=>{ if(k.startsWith(id+':')) delete appState.cart[k]; });
-    saveState(); refreshCustomItemsList(); renderContent(); renderFurniture(); calculateTotals(); showToast(`"${name}" removed`,'info');
+    saveState(); refreshCustomItemsList(); renderContent(); renderFurniture(); calculateTotals(); showToast(`"${name}" removed`,'info',true);
 }
 function refreshCustomItemsList(){
     const listEl=document.getElementById('customItemsList'), box=document.getElementById('customItemsContainer');
@@ -842,6 +1004,92 @@ function refreshCustomItemsList(){
             <div><span class="text-sm font-bold text-gray-800">${i.name}</span><span class="text-xs text-gray-400 ml-2">${i.category} · $${i.choices[0].price.toLocaleString()}</span><span class="text-xs bg-violet-50 text-violet-700 px-1.5 py-0.5 rounded-full ml-2 border border-violet-100">${i.tab||'appliances'}</span></div>
             <button onclick="removeCustomItem('${i.id}')" class="text-red-400 hover:text-red-600 font-bold ml-3 text-lg leading-none transition" aria-label="Remove ${i.name}">×</button>
         </div>`).join('');
+}
+
+// ============================================================
+// ADD ITEM MODAL (New appliance type / new category)
+// ============================================================
+let _addItemTab='appliances', _addMode='type';
+function openAddItemModal(tab){
+    _addItemTab=tab||'appliances';
+    document.getElementById('addItemTitle').textContent=tab==='furniture'?'➕ Add New Furniture':'➕ Add New Item';
+    document.getElementById('newCategoryTab').value=tab;
+    _addMode='type'; setAddMode('type');
+    const cats=[...new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category))].sort();
+    const dl=document.getElementById('addTypeCatDatalist');
+    dl.innerHTML=cats.map(c=>`<option value="${c}">`).join('');
+    if(tab==='furniture'){
+        const fc=['Living Room','Bedroom','Dining Room','Study / Work'];
+        document.getElementById('newTypeCategory').value=fc[0]||'';
+    }
+    document.getElementById('addItemModal').classList.remove('hidden');
+    document.getElementById('newTypeName').focus();
+}
+function closeAddItemModal(){
+    document.getElementById('addItemModal').classList.add('hidden');
+    ['newTypeName','newTypeCategory','newTypeContext','newTypeModelName','newTypeModelPrice','newTypeModelLink','newCategoryName'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    document.getElementById('addItemError').classList.add('hidden');
+    document.getElementById('addTypeDuplicateWarn').classList.add('hidden');
+}
+function setAddMode(mode){
+    _addMode=mode;
+    document.getElementById('addModeType').className='p-3 rounded-xl border-2 transition hover:bg-blue-100 '+(mode==='type'?'border-blue-500 bg-blue-50':'border-gray-200 bg-gray-50');
+    document.getElementById('addModeCategory').className='p-3 rounded-xl border-2 transition hover:bg-gray-100 '+(mode==='category'?'border-blue-500 bg-blue-50':'border-gray-200 bg-gray-50');
+    document.getElementById('addTypeFields').classList.toggle('hidden',mode!=='type');
+    document.getElementById('addCategoryFields').classList.toggle('hidden',mode!=='category');
+}
+function checkAddTypeDuplicate(val){
+    const w=document.getElementById('addTypeDuplicateWarn');
+    if(!val||val.length<2){ w.classList.add('hidden'); return; }
+    const t=val.toLowerCase();
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    const matches=all.filter(item=>item.name.toLowerCase().includes(t)||t.includes(item.name.toLowerCase()));
+    if(matches.length>0){
+        w.innerHTML=`⚠ Similar: <strong>${matches.map(m=>m.name).slice(0,3).join(', ')}</strong>. Consider adding a new model under that item instead.`;
+        w.classList.remove('hidden');
+    } else w.classList.add('hidden');
+}
+function confirmAddItem(){
+    const err=document.getElementById('addItemError');
+    if(_addMode==='category'){
+        const name=document.getElementById('newCategoryName').value.trim();
+        const tab=document.getElementById('newCategoryTab').value;
+        if(!name){ err.textContent='Category name is required.'; err.classList.remove('hidden'); return; }
+        const existing=[...new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category))];
+        if(existing.some(c=>c.toLowerCase()===name.toLowerCase())){ err.textContent=`Category "${name}" already exists.`; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        if(!CAT_COLORS[name]) CAT_COLORS[name]=CAT_COLORS['Custom'];
+        if(!appState.customCategories) appState.customCategories=[];
+        appState.customCategories.push({name,tab});
+        saveState(); closeAddItemModal(); renderContent(); renderFurniture();
+        showToast(`Category "${name}" created — add items to it now`);
+        return;
+    }
+    const name=document.getElementById('newTypeName').value.trim();
+    const category=document.getElementById('newTypeCategory').value.trim();
+    const priority=document.getElementById('newTypePriority').value;
+    const context=document.getElementById('newTypeContext').value.trim();
+    if(!name||!category){ err.textContent='Item name and category are required.'; err.classList.remove('hidden'); return; }
+    err.classList.add('hidden');
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    const exactDup=all.find(i=>i.name.toLowerCase()===name.toLowerCase());
+    if(exactDup){
+        err.textContent=`"${exactDup.name}" already exists in ${exactDup.category}. Add a new model under it instead.`;
+        err.classList.remove('hidden'); return;
+    }
+    if(!CAT_COLORS[category]) CAT_COLORS[category]=CAT_COLORS['Custom'];
+    const id='custom_'+Date.now();
+    const modelName=document.getElementById('newTypeModelName').value.trim();
+    const modelPrice=parseInt(document.getElementById('newTypeModelPrice').value)||0;
+    const modelLink=document.getElementById('newTypeModelLink').value.trim()||'#';
+    const choices=[];
+    if(modelName&&modelPrice>0){
+        choices.push({id:'c1',name:modelName,price:modelPrice,desc:context||'Custom model.',image:`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(modelName)}`,link:modelLink,specs:{'Price':`$${modelPrice.toLocaleString()} HKD`,'Category':category}});
+    }
+    const tabGuess=['Living Room','Bedroom','Dining Room','Study / Work'].includes(category)?'furniture':_addItemTab;
+    appState.customItems.push({id,category,name,priority,tab:tabGuess,context:context||'Custom item.',choices});
+    saveState(); closeAddItemModal(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`"${name}" added to ${tabGuess}${choices.length?'':' — add models via URL or settings'}`);
 }
 
 // ============================================================
@@ -859,6 +1107,42 @@ function resetUrlModal(){
     const btn=document.getElementById('fetchBtn');
     btn.disabled=false; document.getElementById('fetchBtnIcon').textContent='🔍'; document.getElementById('fetchBtnText').textContent='Fetch Info';
     _fetchedImageUrl='';
+    const curSel=document.getElementById('fetchedCurrency'); if(curSel) curSel.value='HKD';
+    const curConv=document.getElementById('currencyConvert'); if(curConv) curConv.classList.add('hidden');
+}
+
+const CATEGORY_KEYWORDS = {
+    'Climate & Air':['dehumidifier','air purifier','air conditioner','aircon','ac ','fan','humidifier','cooling','heater','climate','冷氣','抽濕'],
+    'Cleaning':['vacuum','mop','steamer','iron','robot cleaner','sweeper','garment','washing','dryer','washer','吸塵','蒸氣'],
+    'Entertainment':['tv','television','oled','led tv','soundbar','speaker','projector','gaming','monitor','電視','音響'],
+    'Kitchen':['rice cooker','microwave','oven','toaster','blender','water dispenser','dishwasher','kettle','coffee','induction','cooker','fridge','refrigerator','廚房','電飯煲','微波爐'],
+    'Networking':['router','wifi','mesh','network','modem','access point','ethernet','路由器'],
+    'Personal Care':['hair dryer','shaver','toothbrush','massager','beauty','skincare','dryer','風筒'],
+    'Living Room':['sofa','couch','coffee table','tv console','media unit','bookshelf','cabinet','梳化','茶几'],
+    'Bedroom':['bed','mattress','wardrobe','closet','nightstand','pillow','bedframe','床','床褥','衣櫃'],
+    'Dining Room':['dining table','dining chair','dining set','餐桌','餐椅'],
+    'Study / Work':['desk','office chair','ergonomic','standing desk','monitor arm','書桌','椅子']
+};
+function detectCategory(text){
+    const t=(text||'').toLowerCase();
+    for(const [cat, kws] of Object.entries(CATEGORY_KEYWORDS)){
+        if(kws.some(k=>t.includes(k))) return cat;
+    }
+    return '';
+}
+function extractPrice(text){
+    if(!text) return '';
+    const patterns=[
+        /(?:HK[D$]|hkd)\s*\$?\s*([\d,]+(?:\.\d{1,2})?)/i,
+        /\$([\d,]+(?:\.\d{1,2})?)\s*(?:HKD)?/i,
+        /(?:price|售價|價錢|特價)[：:\s]*\$?\s*([\d,]+(?:\.\d{1,2})?)/i,
+        /(?:^|\s)([\d,]{3,}(?:\.\d{1,2})?)\s*(?:HKD|港幣|元)/i,
+    ];
+    for(const p of patterns){
+        const m=text.match(p);
+        if(m){ const v=parseFloat(m[1].replace(/,/g,'')); if(v>10&&v<999999) return Math.round(v); }
+    }
+    return '';
 }
 
 async function fetchProductUrl(){
@@ -870,65 +1154,158 @@ async function fetchProductUrl(){
     const btn=document.getElementById('fetchBtn');
     btn.disabled=true; document.getElementById('fetchBtnIcon').textContent='⏳'; document.getElementById('fetchBtnText').textContent='Fetching...';
 
-    let meta = { title:'', description:'', image:'' };
+    let meta = { title:'', description:'', image:'', price:'' };
 
-    // Try Microlink.io
+    // Service 1: Microlink.io
     try {
         const r=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`, { signal: AbortSignal.timeout(8000) });
         const d=await r.json();
-        if(d.status==='success'){ meta.title=d.data.title||''; meta.description=d.data.description||''; meta.image=d.data.image?.url||d.data.logo?.url||''; }
+        if(d.status==='success'){
+            meta.title=d.data.title||''; meta.description=d.data.description||'';
+            meta.image=d.data.image?.url||d.data.logo?.url||'';
+            if(!meta.price) meta.price=extractPrice(d.data.title+' '+d.data.description);
+        }
     } catch(_){}
 
-    // Fallback: allorigins OG parsing
+    // Service 2: JsonLink.io
+    if(!meta.title){
+        try {
+            const r=await fetch(`https://jsonlink.io/api/extract?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
+            const d=await r.json();
+            if(d.title){ meta.title=meta.title||d.title; meta.description=meta.description||d.description||''; meta.image=meta.image||d.images?.[0]||''; }
+            if(!meta.price) meta.price=extractPrice((d.title||'')+' '+(d.description||''));
+        } catch(_){}
+    }
+
+    // Service 3: AllOrigins + OG tag parsing + JSON-LD structured data
     if(!meta.title){
         try {
             const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(10000) });
             const html=(await r.json()).contents||'';
             const doc=new DOMParser().parseFromString(html,'text/html');
             const og=(p)=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
-            meta.title=og('og:title')||doc.querySelector('title')?.textContent||'';
-            meta.description=og('og:description')||og('description')||'';
-            meta.image=og('og:image')||'';
+            meta.title=meta.title||og('og:title')||doc.querySelector('title')?.textContent||'';
+            meta.description=meta.description||og('og:description')||og('description')||'';
+            meta.image=meta.image||og('og:image')||'';
+            const ogPrice=og('product:price:amount')||og('og:price:amount')||'';
+            if(ogPrice&&!meta.price) meta.price=Math.round(parseFloat(ogPrice))||'';
+            if(!meta.price){
+                doc.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{
+                    try{ const j=JSON.parse(s.textContent); const p=j?.offers?.price||j?.offers?.[0]?.price; if(p&&!meta.price) meta.price=Math.round(parseFloat(p)); }catch(_){}
+                });
+            }
+            if(!meta.price) meta.price=extractPrice(html.slice(0,20000));
         } catch(_){}
     }
 
     btn.disabled=false; document.getElementById('fetchBtnIcon').textContent='🔍'; document.getElementById('fetchBtnText').textContent='Fetch Info';
 
-    if(!meta.title&&!meta.description){
+    const gotSomething = meta.title||meta.description||meta.image;
+    if(!gotSomething){
         const e=document.getElementById('fetchError');
-        e.textContent='Could not automatically extract product info (the site may block scrapers). Please fill in the details manually below.';
+        e.innerHTML='<strong>Could not auto-extract info</strong> — the site may block scrapers. The form below is ready for you to fill in manually.';
         e.classList.remove('hidden');
     }
 
-    // Show step 2 with pre-filled data
     _fetchedImageUrl = meta.image;
     const img=document.getElementById('fetchedImagePreview');
     img.src=meta.image||`https://placehold.co/160x110/f5f3ff/3730a3?text=Product`;
     img.onerror=()=>{ img.src=`https://placehold.co/160x110/f5f3ff/3730a3?text=No+Image`; };
     document.getElementById('fetchedSourceUrl').textContent=url;
-    document.getElementById('fetchedName').value=meta.title.slice(0,120);
-    document.getElementById('fetchedDesc').value=meta.description.slice(0,300);
-    document.getElementById('fetchedPrice').value='';
-    document.getElementById('fetchedCategory').value='';
+    document.getElementById('fetchedName').value=(meta.title||'').slice(0,120);
+    document.getElementById('fetchedDesc').value=(meta.description||'').slice(0,300);
+    document.getElementById('fetchedPrice').value=meta.price||'';
+    const autoCategory=detectCategory(meta.title+' '+meta.description+' '+url);
+    document.getElementById('fetchedCategory').value=autoCategory;
+    if(autoCategory){
+        const tabGuess=['Living Room','Bedroom','Dining Room','Study / Work'].includes(autoCategory)?'furniture':'appliances';
+        document.getElementById('fetchedTab').value=tabGuess;
+    }
+    populateExistingItemDropdown(autoCategory);
     document.getElementById('urlStep1').classList.add('hidden');
     document.getElementById('urlStep2').classList.remove('hidden');
-    setTimeout(()=>document.getElementById('fetchedPrice').focus(),100);
+    if(!meta.price) setTimeout(()=>document.getElementById('fetchedPrice').focus(),100);
+    else setTimeout(()=>document.getElementById('fetchedName').focus(),100);
+}
+
+function populateExistingItemDropdown(category){
+    const sel=document.getElementById('existingItemSelect');
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    sel.innerHTML='<option value="">— Select an item —</option>';
+    all.forEach(item=>{
+        const label=`${item.name} (${item.category}) — ${item.choices.length} model${item.choices.length!==1?'s':''}`;
+        sel.innerHTML+=`<option value="${item.id}" ${item.category===category?'':''}>${label}</option>`;
+    });
+    updateCategoryDatalist();
+}
+function updateCategoryDatalist(){
+    const dl=document.getElementById('categoryDatalist');
+    if(!dl) return;
+    const cats=new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category));
+    dl.innerHTML=[...cats].sort().map(c=>`<option value="${c}">`).join('');
+}
+function toggleExistingItemSelect(){
+    const mode=document.getElementById('fetchedAddMode').value;
+    document.getElementById('existingItemRow').classList.toggle('hidden',mode!=='existing');
+    document.getElementById('newItemFields').classList.toggle('hidden',mode==='existing');
+}
+function checkDuplicateName(val){
+    const w=document.getElementById('duplicateWarning');
+    if(!val||val.length<3){ w.classList.add('hidden'); return; }
+    const t=val.toLowerCase();
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    const matches=[];
+    all.forEach(item=>{
+        if(item.name.toLowerCase().includes(t)||t.includes(item.name.toLowerCase())) matches.push(item.name);
+        item.choices.forEach(ch=>{ if(ch.name.toLowerCase().includes(t)||t.includes(ch.name.toLowerCase())) matches.push(ch.name); });
+    });
+    const unique=[...new Set(matches)];
+    if(unique.length>0){
+        w.innerHTML=`<strong>⚠ Similar item${unique.length>1?'s':''} found:</strong> ${unique.slice(0,3).join(', ')}${unique.length>3?` +${unique.length-3} more`:''}. Consider adding as a comparison model instead.`;
+        w.classList.remove('hidden');
+    } else w.classList.add('hidden');
 }
 
 function confirmAddProduct(){
-    const name=document.getElementById('fetchedName').value.trim(), price=parseInt(document.getElementById('fetchedPrice').value),
+    const name=document.getElementById('fetchedName').value.trim(), price=getHKDPrice(),
           desc=document.getElementById('fetchedDesc').value.trim(), category=document.getElementById('fetchedCategory').value.trim(),
           tab=document.getElementById('fetchedTab').value, priority=document.getElementById('fetchedPriority').value,
-          url=document.getElementById('fetchedSourceUrl').textContent, err=document.getElementById('urlConfirmError');
-    if(!name||!price||price<=0||!category){ err.textContent='Name, Category, and Price are required.'; err.classList.remove('hidden'); return; }
-    err.classList.add('hidden');
+          url=document.getElementById('fetchedSourceUrl').textContent, err=document.getElementById('urlConfirmError'),
+          mode=document.getElementById('fetchedAddMode').value;
+
+    if(!name||!price||price<=0){ err.textContent='Name and a valid Price are required.'; err.classList.remove('hidden'); return; }
+
     const image=_fetchedImageUrl||`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(name)}`;
+    let hostname=''; try{hostname=new URL(url).hostname;}catch(_){hostname='URL';}
+
+    if(mode==='existing'){
+        const targetId=document.getElementById('existingItemSelect').value;
+        if(!targetId){ err.textContent='Please select an existing item to add this model under.'; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        const all=[...appliances,...furnitureItems,...appState.customItems];
+        const target=all.find(i=>i.id===targetId);
+        if(!target){ err.textContent='Item not found.'; err.classList.remove('hidden'); return; }
+        const newChoiceId='c'+(target.choices.length+1);
+        const newChoice={ id:newChoiceId, name, price, desc:desc||'Imported product.', image, link:url, specs:{'Price':`$${price.toLocaleString()} HKD`,'Source':hostname} };
+        target.choices.push(newChoice);
+        if(!appState.addedChoices) appState.addedChoices={};
+        if(!appState.addedChoices[targetId]) appState.addedChoices[targetId]=[];
+        appState.addedChoices[targetId].push(newChoice);
+        pushUndo('add model');
+        saveState(); closeUrlModal(); renderContent(); renderFurniture(); calculateTotals();
+        showToast(`"${name}" added as model #${target.choices.length} under "${target.name}"`,'success',true);
+        return;
+    }
+
+    if(!category){ err.textContent='Category is required for new items.'; err.classList.remove('hidden'); return; }
+    err.classList.add('hidden');
     const id='url_'+Date.now();
-    appState.customItems.push({ id, category, name, priority, tab, context:desc||`Added from ${new URL(url).hostname} via URL import.`,
-        choices:[{ id:'c1', name, price, desc:desc||'Imported product.', image, link:url, specs:{'Price':`$${price.toLocaleString()} HKD`,'Source':new URL(url).hostname,'Category':category} }]
+    appState.customItems.push({ id, category, name, priority, tab, context:desc||`Added from ${hostname} via URL import.`,
+        choices:[{ id:'c1', name, price, desc:desc||'Imported product.', image, link:url, specs:{'Price':`$${price.toLocaleString()} HKD`,'Source':hostname,'Category':category} }]
     });
+    pushUndo('add product');
     saveState(); closeUrlModal(); renderContent(); renderFurniture(); calculateTotals();
-    showToast(`"${name}" added to ${tab}`);
+    showToast(`"${name}" added to ${tab}`,'success',true);
 }
 
 // ============================================================
@@ -947,11 +1324,131 @@ function importSetup(event){
 }
 
 // ============================================================
+// CURRENCY CONVERSION
+// ============================================================
+function convertCurrency(){
+    const val=parseFloat(document.getElementById('fetchedPrice').value)||0;
+    const cur=document.getElementById('fetchedCurrency').value;
+    const el=document.getElementById('currencyConvert');
+    if(cur==='HKD'||!val){ el.classList.add('hidden'); return; }
+    const rate=CURRENCY_RATES[cur]||1;
+    const hkd=Math.round(val*rate);
+    el.textContent=`≈ $${hkd.toLocaleString()} HKD (rate: 1 ${cur} = ${rate} HKD)`;
+    el.classList.remove('hidden');
+}
+function getHKDPrice(){
+    const val=parseFloat(document.getElementById('fetchedPrice').value)||0;
+    const cur=document.getElementById('fetchedCurrency').value;
+    const rate=CURRENCY_RATES[cur]||1;
+    return Math.round(val*rate);
+}
+
+// ============================================================
+// PRINT SHOPPING LIST
+// ============================================================
+function printShoppingList(){
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    let items=[]; let total=0;
+    all.forEach(item=>item.choices.forEach(ch=>{
+        const q=getQty(item.id,ch.id);
+        if(q>0){ const line=ch.price*q; total+=line; items.push({category:item.category,name:item.name,model:ch.name,price:ch.price,qty:q,total:line,status:appState.itemStatus[item.id]||'',note:appState.notes[item.id]||'',link:ch.link||'',store:extractStore(ch.link)}); }
+    }));
+    const byStore={};
+    items.forEach(i=>{ const s=i.store||'Other'; (byStore[s]=byStore[s]||[]).push(i); });
+    const byCat={};
+    items.forEach(i=>{ (byCat[i.category]=byCat[i.category]||[]).push(i); });
+
+    const w=window.open('','_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>Shopping List — Apartment Setup</title>
+    <style>body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;color:#1f2937;font-size:13px}
+    h1{font-size:22px;margin-bottom:4px}h2{font-size:15px;margin:24px 0 8px;border-bottom:2px solid #e5e7eb;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px}th,td{padding:6px 10px;text-align:left;border-bottom:1px solid #f1f5f9}
+    th{background:#f8fafc;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;font-weight:700}
+    .total-row td{font-weight:800;border-top:2px solid #1f2937;font-size:14px}
+    .note{font-style:italic;color:#64748b;font-size:11px}.status{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;background:#eff6ff;color:#1d4ed8}
+    .store-section{margin-top:28px}.store-section h2{color:#0369a1}
+    @media print{body{margin:20px}}</style></head><body>
+    <h1>🏠 Apartment Setup — Shopping List</h1>
+    <p style="color:#64748b;margin-bottom:20px">Generated ${new Date().toLocaleDateString('en-HK',{weekday:'long',year:'numeric',month:'long',day:'numeric'})} · Total: <strong>$${total.toLocaleString()} HKD</strong> · ${items.length} item${items.length!==1?'s':''}</p>
+
+    <h2>📋 By Category</h2>
+    ${Object.entries(byCat).map(([cat,list])=>`<h3 style="font-size:13px;color:#374151;margin:14px 0 4px">${cat}</h3>
+    <table><thead><tr><th>Item</th><th>Model</th><th>Price</th><th>Qty</th><th>Total</th><th>Status</th></tr></thead><tbody>
+    ${list.map(i=>`<tr><td>${i.name}</td><td>${i.model}</td><td>$${i.price.toLocaleString()}</td><td>${i.qty}</td><td><strong>$${i.total.toLocaleString()}</strong></td><td>${i.status?`<span class="status">${i.status}</span>`:''}</td></tr>${i.note?`<tr><td colspan="6" class="note">📝 ${i.note}</td></tr>`:''}`).join('')}
+    </tbody></table>`).join('')}
+
+    <div class="store-section"><h2>🏬 By Store (Shopping Trips)</h2>
+    ${Object.entries(byStore).map(([store,list])=>`<h3 style="font-size:13px;color:#0369a1;margin:14px 0 4px">${store} (${list.length} item${list.length!==1?'s':''})</h3>
+    <table><thead><tr><th>Item</th><th>Model</th><th>Price</th><th>Qty</th></tr></thead><tbody>
+    ${list.map(i=>`<tr><td>${i.name}</td><td>${i.model}</td><td>$${i.price.toLocaleString()}</td><td>${i.qty}</td></tr>`).join('')}
+    </tbody></table>`).join('')}</div>
+
+    <div style="margin-top:30px;border-top:2px solid #1f2937;padding-top:12px">
+    <table><tbody><tr class="total-row"><td colspan="4">Grand Total</td><td>$${total.toLocaleString()} HKD</td><td></td></tr></tbody></table>
+    </div></body></html>`);
+    w.document.close();
+    setTimeout(()=>w.print(),500);
+}
+
+// ============================================================
+// STORE EXTRACTION & GROUPING
+// ============================================================
+const STORE_MAP = {
+    'fortress.com':'Fortress','hktvmall.com':'HKTVMALL','ikea.com':'IKEA','boconcept.com':'BoConcept',
+    'muji.com':'MUJI','flexispot.com':'Flexispot','tempur.com':'Tempur','sony.com':'Sony Store',
+    'panasonic.com':'Panasonic','lg.com':'LG','dyson.com':'Dyson','apple.com':'Apple',
+    'amazon':'Amazon','taobao.com':'Taobao','jd.com':'JD.com','tmall.com':'TMall',
+    'price.com.hk':'Price.com.hk','broadwayhk.com':'Broadway','courts.com':'Courts',
+    'gaincity.com':'Gain City','alibaba.com':'Alibaba'
+};
+function extractStore(url){
+    if(!url||url==='#') return 'TBD';
+    try{
+        const host=new URL(url).hostname.toLowerCase();
+        for(const[domain,name] of Object.entries(STORE_MAP)){
+            if(host.includes(domain)) return name;
+        }
+        return host.replace('www.','').split('.')[0];
+    }catch(_){ return 'TBD'; }
+}
+function renderStoreGrouping(){
+    const el=document.getElementById('storeGroupingList');
+    if(!el) return;
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    const byStore={};
+    all.forEach(item=>item.choices.forEach(ch=>{
+        const q=getQty(item.id,ch.id);
+        if(q>0){
+            const store=extractStore(ch.link);
+            if(!byStore[store]) byStore[store]={items:[],total:0};
+            byStore[store].items.push({name:ch.name,price:ch.price,qty:q,itemName:item.name});
+            byStore[store].total+=ch.price*q;
+        }
+    }));
+    const sorted=Object.entries(byStore).sort((a,b)=>b[1].total-a[1].total);
+    if(!sorted.length){ el.innerHTML='<p class="text-sm text-gray-400 italic text-center py-4">Add items to see where to buy them</p>'; return; }
+    el.innerHTML=sorted.map(([store,data])=>`
+        <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-bold text-gray-800 flex items-center gap-1.5">🏬 ${store}</span>
+                <span class="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">$${data.total.toLocaleString()}</span>
+            </div>
+            <div class="space-y-1">
+                ${data.items.map(i=>`<div class="flex justify-between text-xs text-gray-600"><span>${i.itemName}: ${i.name}${i.qty>1?' ×'+i.qty:''}</span><span class="font-bold">$${(i.price*i.qty).toLocaleString()}</span></div>`).join('')}
+            </div>
+        </div>`).join('');
+}
+
+// ============================================================
 // CART
 // ============================================================
 function getQty(iid,cid){ return appState.cart[`${iid}:${cid}`]||0; }
 function setQty(iid,cid,qty){
+    const oldQty=getQty(iid,cid);
     qty=Math.max(0,qty); const key=`${iid}:${cid}`;
+    if(oldQty!==qty){
+        pushUndo(`qty change`);
+    }
     qty===0 ? delete appState.cart[key] : (appState.cart[key]=qty);
     saveState(); calculateTotals(); syncQtyUI(iid,cid,qty);
 }
@@ -975,10 +1472,20 @@ function syncQtyUI(iid,cid,qty){
 function getAllAppliances(){ return [...appliances,...appState.customItems.filter(i=>!i.tab||i.tab==='appliances')]; }
 function getAllFurniture(){  return [...furnitureItems,...appState.customItems.filter(i=>i.tab==='furniture')]; }
 
+const STATUS_OPTIONS=['Researching','Decided','Ordered','Delivered'];
+const STATUS_CLS={Researching:'status-researching',Decided:'status-decided',Ordered:'status-ordered',Delivered:'status-delivered'};
+function toggleWishlist(id){ const i=appState.wishlist.indexOf(id); if(i===-1) appState.wishlist.push(id); else appState.wishlist.splice(i,1); saveState(); renderContent(); renderFurniture(); }
+function cycleStatus(id){ const cur=appState.itemStatus[id]||''; const idx=STATUS_OPTIONS.indexOf(cur); appState.itemStatus[id]=STATUS_OPTIONS[(idx+1)%STATUS_OPTIONS.length]; saveState(); renderContent(); renderFurniture(); }
+function toggleNote(id){ const el=document.getElementById('note-area-'+id); if(el) el.classList.toggle('open'); }
+function saveNote(id){ const el=document.getElementById('note-input-'+id); if(el){ appState.notes[id]=el.value.trim(); saveState(); } }
+
 function renderItemCard(item){
     const cc=CAT_COLORS[item.category]||CAT_COLORS['Custom'];
     const badgeCls=item.priority==='Necessary'?'bg-red-50 text-red-700 border-red-200':item.priority==='Custom'?'bg-violet-50 text-violet-700 border-violet-200':'bg-yellow-50 text-yellow-700 border-yellow-200';
-    const hasCompare=item.choices.length>=2&&!item.id.startsWith('custom_')&&!item.id.startsWith('url_');
+    const hasCompare=item.choices.length>=2;
+    const isWished=appState.wishlist.includes(item.id);
+    const status=appState.itemStatus[item.id]||'';
+    const note=appState.notes[item.id]||'';
     const choicesHtml=item.choices.map(ch=>{
         const qty=getQty(item.id,ch.id); const isActive=qty>0;
         const imgSrc=ch.image||`https://placehold.co/160x110/f5f5f5/666?text=${encodeURIComponent(ch.name)}`;
@@ -1016,14 +1523,26 @@ function renderItemCard(item){
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow duration-200">
         <div class="h-1 w-full ${cc.strip}"></div>
         <div class="p-5 flex-grow">
-            <div class="flex justify-between items-start mb-1.5">
-                <h3 class="text-sm font-black text-gray-900 leading-tight">${item.name}</h3>
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ml-2 flex-shrink-0 ${badgeCls}">${item.priority==='Necessary'?'🔴':item.priority==='Custom'?'🔷':'🟡'} ${item.priority}</span>
+            <div class="flex justify-between items-start mb-1">
+                <div class="flex items-center gap-2 min-w-0">
+                    <button onclick="toggleWishlist('${item.id}')" class="wish-btn text-base flex-shrink-0 ${isWished?'active text-amber-400':'text-gray-300'}" title="${isWished?'Remove from wishlist':'Add to wishlist'}" aria-label="Toggle wishlist">★</button>
+                    <h3 class="text-sm font-black text-gray-900 leading-tight truncate">${item.name}</h3>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                    ${status?`<span onclick="cycleStatus('${item.id}')" class="status-badge ${STATUS_CLS[status]||''}">${status}</span>`:`<button onclick="cycleStatus('${item.id}')" class="text-gray-300 hover:text-gray-500 text-xs font-bold transition" title="Set status">📋</button>`}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold border ${badgeCls}">${item.priority==='Necessary'?'🔴':item.priority==='Custom'?'🔷':'🟡'} ${item.priority}</span>
+                </div>
             </div>
-            <p class="text-xs font-bold ${cc.text} uppercase tracking-wider mb-2.5">${item.category}</p>
+            <p class="text-xs font-bold ${cc.text} uppercase tracking-wider mb-2.5 ml-7">${item.category}</p>
             <p class="text-xs text-gray-500 mb-4 leading-relaxed">${item.context}</p>
             <div class="space-y-2.5">${choicesHtml}</div>
-            ${hasCompare?`<button onclick="openCompare('${item.id}','${item._tab||'appliances'}')" class="w-full py-2.5 mt-4 ${cc.bg} ${cc.text} border ${cc.border} rounded-xl text-xs font-bold hover:opacity-80 transition flex justify-center items-center gap-2" aria-label="Compare models for ${item.name}">⇌ Compare Models & Insights</button>`:''}
+            <div class="flex gap-2 mt-3">
+                ${hasCompare?`<button onclick="openCompare('${item.id}','${item._tab||'appliances'}')" class="flex-grow py-2 ${cc.bg} ${cc.text} border ${cc.border} rounded-xl text-xs font-bold hover:opacity-80 transition flex justify-center items-center gap-1.5">⇌ Compare</button>`:''}
+                <button onclick="toggleNote('${item.id}')" class="px-3 py-2 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-100 transition flex-shrink-0" title="Notes">📝${note?' •':''}</button>
+            </div>
+            <div id="note-area-${item.id}" class="note-area ${note?'open':''} mt-2">
+                <textarea id="note-input-${item.id}" onblur="saveNote('${item.id}')" placeholder="Add a note (e.g. saw $200 off at Fortress)..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs focus:border-blue-400 focus:ring-1 focus:ring-blue-100 outline-none bg-gray-50 resize-none" rows="2">${note}</textarea>
+            </div>
         </div>
     </div>`;
 }
@@ -1031,7 +1550,12 @@ function renderItemCard(item){
 // ============================================================
 // RENDER TABS
 // ============================================================
-let currentView='card', currentFilter='all';
+let currentView='card', currentFilter='all', currentCatFilter='all', globalSearchTerm='';
+
+function handleSearch(val){
+    globalSearchTerm=val.toLowerCase().trim();
+    renderContent(); renderFurniture();
+}
 
 window.setView=function(v){
     currentView=v;
@@ -1040,10 +1564,57 @@ window.setView=function(v){
     renderContent();
 };
 
+const CAT_ICONS = {'Climate & Air':'❄️','Cleaning':'🧹','Entertainment':'📺','Kitchen':'🍳','Networking':'📡','Personal Care':'💆','Living Room':'🛋','Bedroom':'🛏','Dining Room':'🍽','Study / Work':'💻','Custom':'🔷'};
+
+function renderAppCategoryFilters(){
+    const cats=[...new Set(getAllAppliances().map(i=>i.category))].sort();
+    const el=document.getElementById('appCategoryFilter');
+    if(!el) return;
+    let html=`<button class="cat-filter-btn ${currentCatFilter==='all'?'bg-gray-700 text-white shadow-sm':'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'} px-3 py-1.5 rounded-lg text-xs font-bold transition-all" data-cat="all">All Categories</button>`;
+    cats.forEach(cat=>{
+        const cc=CAT_COLORS[cat]||CAT_COLORS['Custom'];
+        const icon=CAT_ICONS[cat]||'📦';
+        const isActive=currentCatFilter===cat;
+        html+=`<button class="cat-filter-btn ${isActive?cc.strip+' text-white shadow-sm':cc.bg+' '+cc.text+' border '+cc.border+' hover:opacity-80'} px-3 py-1.5 rounded-lg text-xs font-bold transition-all" data-cat="${cat}">${icon} ${cat}</button>`;
+    });
+    el.innerHTML=html;
+}
+
+function renderFurnitureCategoryFilters(){
+    const cats=[...new Set(getAllFurniture().map(i=>i.category))].sort();
+    const el=document.getElementById('furnitureFilterContainer');
+    if(!el) return;
+    let html=`<button class="furn-filter-btn ${furnitureFilter==='all'?'active bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm':'bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-100'} px-4 py-2 transition-all" data-filter="all" aria-label="All rooms">All Rooms</button>`;
+    cats.forEach(cat=>{
+        const cc=CAT_COLORS[cat]||CAT_COLORS['Custom'];
+        const icon=CAT_ICONS[cat]||'📦';
+        const isActive=furnitureFilter===cat;
+        html+=`<button class="furn-filter-btn ${isActive?'active bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm':cc.bg+' '+cc.text+' border '+cc.border+' rounded-xl text-sm font-medium hover:'+cc.bg.replace('-50','-100')} px-4 py-2 transition-all" data-filter="${cat}" aria-label="${cat}">${icon} ${cat}</button>`;
+    });
+    el.innerHTML=html;
+}
+
+function matchSearch(item){
+    if(!globalSearchTerm) return true;
+    const t=globalSearchTerm;
+    if(item.name.toLowerCase().includes(t)) return true;
+    if(item.category.toLowerCase().includes(t)) return true;
+    if((item.context||'').toLowerCase().includes(t)) return true;
+    return item.choices.some(ch=>ch.name.toLowerCase().includes(t)||(ch.desc||'').toLowerCase().includes(t));
+}
+
 function renderContent(fo){
     if(fo!==undefined) currentFilter=fo;
     const con=document.getElementById('applianceContainer'); con.innerHTML='';
-    const all=getAllAppliances(), filtered=all.filter(a=>currentFilter==='all'||a.priority===currentFilter);
+    const all=getAllAppliances();
+    const filtered=all.filter(a=>{
+        if(!matchSearch(a)) return false;
+        if(currentFilter==='wishlist') return appState.wishlist.includes(a.id);
+        if(currentFilter!=='all'&&a.priority!==currentFilter) return false;
+        if(currentCatFilter!=='all'&&a.category!==currentCatFilter) return false;
+        return true;
+    });
+    renderAppCategoryFilters();
     if(currentView==='card'){
         con.className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5';
         filtered.forEach(a=>{ const d=document.createElement('div'); d.innerHTML=renderItemCard({...a,_tab:'appliances'}); con.appendChild(d.firstElementChild); });
@@ -1061,7 +1632,7 @@ function renderContent(fo){
                     <div class="flex-grow">
                         <div class="font-bold text-sm text-gray-900 flex items-center gap-2 flex-wrap">
                             ${app.name}
-                            ${app.choices.length>=2&&!app.id.startsWith('custom_')&&!app.id.startsWith('url_')?`<button onclick="openCompare('${app.id}','appliances')" class="text-xs font-bold ${cc.bg} ${cc.text} px-2 py-0.5 rounded-lg border ${cc.border} hover:opacity-80 transition" aria-label="Compare ${app.name}">Compare ⇌</button>`:''}
+                            ${app.choices.length>=2?`<button onclick="openCompare('${app.id}','appliances')" class="text-xs font-bold ${cc.bg} ${cc.text} px-2 py-0.5 rounded-lg border ${cc.border} hover:opacity-80 transition" aria-label="Compare ${app.name}">Compare ⇌</button>`:''}
                         </div>
                         <p class="text-xs text-gray-400 mt-0.5 leading-relaxed">${app.context}</p>
                     </div>
@@ -1088,7 +1659,11 @@ function renderFurniture(fo){
     if(fo!==undefined) furnitureFilter=fo;
     const con=document.getElementById('furnitureContainer'); con.innerHTML='';
     con.className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5';
-    getAllFurniture().filter(i=>furnitureFilter==='all'||i.category===furnitureFilter).forEach(item=>{
+    renderFurnitureCategoryFilters();
+    getAllFurniture().filter(i=>{
+        if(!matchSearch(i)) return false;
+        return furnitureFilter==='all'||i.category===furnitureFilter;
+    }).forEach(item=>{
         const d=document.createElement('div'); d.innerHTML=renderItemCard({...item,_tab:'furniture'}); con.appendChild(d.firstElementChild);
     });
     updateTabBadges();
@@ -1108,18 +1683,24 @@ function updateTabBadges(){
 
 // Filter listeners
 document.getElementById('filterContainer').addEventListener('click',e=>{
-    if(e.target.tagName!=='BUTTON') return;
-    document.querySelectorAll('#filterContainer .filter-btn').forEach(b=>{ const f=b.dataset.filter; b.className=f==='Necessary'?'filter-btn px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-all':f==='Good to Have'?'filter-btn px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-xl text-sm font-medium hover:bg-yellow-100 transition-all':'filter-btn px-4 py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-100 transition-all'; });
-    const f=e.target.dataset.filter;
-    e.target.className=f==='Necessary'?'filter-btn active px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold shadow-sm transition-all':f==='Good to Have'?'filter-btn active px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-bold shadow-sm transition-all':'filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm transition-all';
+    const btn=e.target.closest('.filter-btn'); if(!btn) return;
+    document.querySelectorAll('#filterContainer .filter-btn').forEach(b=>{ const f=b.dataset.filter; b.className=f==='Necessary'?'filter-btn px-4 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-medium hover:bg-red-100 transition-all':f==='Good to Have'?'filter-btn px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-xl text-sm font-medium hover:bg-yellow-100 transition-all':f==='wishlist'?'filter-btn px-4 py-2 bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-medium hover:bg-amber-100 transition-all':'filter-btn px-4 py-2 bg-gray-50 text-gray-700 border border-gray-200 rounded-xl text-sm font-medium hover:bg-gray-100 transition-all'; });
+    const f=btn.dataset.filter;
+    btn.className=f==='Necessary'?'filter-btn active px-4 py-2 bg-red-600 text-white rounded-xl text-sm font-bold shadow-sm transition-all':f==='Good to Have'?'filter-btn active px-4 py-2 bg-yellow-500 text-white rounded-xl text-sm font-bold shadow-sm transition-all':f==='wishlist'?'filter-btn active px-4 py-2 bg-amber-500 text-white rounded-xl text-sm font-bold shadow-sm transition-all':'filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm transition-all';
     renderContent(f); calculateTotals();
 });
+document.addEventListener('click',e=>{
+    const catBtn=e.target.closest('.cat-filter-btn');
+    if(catBtn){
+        currentCatFilter=catBtn.dataset.cat||'all';
+        renderContent(); calculateTotals();
+        return;
+    }
+});
 document.getElementById('furnitureFilterContainer').addEventListener('click',e=>{
-    if(e.target.tagName!=='BUTTON') return;
-    const colorMap={'all':'gray','Living Room':'blue','Bedroom':'purple','Dining Room':'amber','Study / Work':'teal'};
-    document.querySelectorAll('#furnitureFilterContainer .furn-filter-btn').forEach(b=>{ const c=colorMap[b.dataset.filter]||'gray'; b.className=`furn-filter-btn px-4 py-2 bg-${c}-50 text-${c}-700 border border-${c}-200 rounded-xl text-sm font-medium hover:bg-${c}-100 transition-all`; });
-    e.target.className='furn-filter-btn active px-4 py-2 bg-gray-800 text-white rounded-xl text-sm font-bold shadow-sm';
-    renderFurniture(e.target.dataset.filter);
+    const btn=e.target.closest('.furn-filter-btn'); if(!btn) return;
+    furnitureFilter=btn.dataset.filter||'all';
+    renderFurniture();
 });
 
 // ============================================================
@@ -1148,7 +1729,7 @@ function calculateTotals(){
     else { bar.className='bg-red-500 h-full rounded-full progress-bar-fill'; accent.className='absolute top-0 left-0 w-1.5 h-full rounded-l-2xl bg-red-500'; status.innerHTML=`<span class="text-red-500">⚠️</span> <span class="text-red-700 font-bold">Over budget by $${(total-appState.budgetMax).toLocaleString()}. Consider removing items.</span>`; ql.innerHTML=`<span class="text-red-600">Over Budget</span>`; }
     const sorted=Object.entries(ct).sort((a,b)=>b[1]-a[1]); const listEl=document.getElementById('categoryBreakdownList');
     listEl.innerHTML=sorted.length?sorted.map(([cat,catTotal],i)=>{ const pct2=total>0?((catTotal/total)*100).toFixed(1):0; const clr=paletteHex[i%paletteHex.length]; return `<li><div class="flex justify-between items-end mb-1.5"><span class="font-bold text-gray-800 text-sm">${cat}</span><div class="text-right"><span class="font-black text-gray-900">$${catTotal.toLocaleString()}</span><span class="text-xs text-gray-400 ml-1">(${pct2}%)</span></div></div><div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden"><div class="h-full rounded-full progress-bar-fill" style="width:${pct2}%;background:${clr}"></div></div></li>`; }).join(''):`<li class="text-sm text-gray-400 italic text-center py-5 bg-gray-50 rounded-xl">Cart is empty. Add items from the Appliances or Furniture tabs.</li>`;
-    updateChart(ct); updateTabBadges();
+    updateChart(ct); updateTabBadges(); renderStoreGrouping();
 }
 
 function initChart(){
@@ -1173,169 +1754,204 @@ function switchTab(id){
 }
 
 // ============================================================
-// COMPARE VIEW (REDESIGNED)
+// COMPARE VIEW — supports 2 or 3 items, checkbox selection
 // ============================================================
-window.openCompare=function(id,tab){ window.open(`${window.location.pathname}?compare=${id}&tab=${tab||'appliances'}`, '_blank'); };
+const COMPARE_COLORS=[
+    {bg:'bg-blue-500',bgLight:'bg-blue-50',text:'text-blue-700',textDark:'text-blue-800',border:'border-blue-200',barCls:'score-bar-c1',hex:'#3b82f6'},
+    {bg:'bg-amber-400',bgLight:'bg-amber-50',text:'text-amber-700',textDark:'text-amber-800',border:'border-amber-200',barCls:'score-bar-c2',hex:'#f59e0b'},
+    {bg:'bg-emerald-500',bgLight:'bg-emerald-50',text:'text-emerald-700',textDark:'text-emerald-800',border:'border-emerald-200',barCls:'score-bar-c3',hex:'#10b981'}
+];
 
-function renderCompareView(appId, tabType){
+window.openCompare=function(id,tab,selectedIds){
+    const choicesParam=selectedIds?`&choices=${selectedIds.join(',')}`:'';
+    window.open(`${window.location.pathname}?compare=${id}&tab=${tab||'appliances'}${choicesParam}`, '_blank');
+};
+
+function showChoiceSelector(appId, tabType){
+    const pool=tabType==='furniture'?getAllFurniture():getAllAppliances();
+    const app=pool.find(a=>a.id===appId);
+    if(!app) return;
+    const cv=document.getElementById('compareView');
+    cv.innerHTML=`
+    <div class="max-w-2xl mx-auto mt-12 px-4">
+        <div class="flex justify-between items-center mb-6">
+            <a href="${window.location.pathname}" class="text-sm font-bold text-gray-500 hover:text-gray-800 transition">← Back to Dashboard</a>
+            <button id="darkModeToggle" onclick="toggleDarkMode()" class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-base hover:bg-gray-100 transition shadow-sm">${document.documentElement.classList.contains('dark')?'☀️':'🌙'}</button>
+        </div>
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <h2 class="text-lg font-black text-gray-900 mb-2">Select Models to Compare</h2>
+            <p class="text-sm text-gray-500 mb-6">"${app.name}" has ${app.choices.length} models. Choose <strong>2 or 3</strong> to compare side-by-side.</p>
+            <div class="space-y-3" id="choiceSelectorList">
+                ${app.choices.map((ch,i)=>`
+                <label class="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer">
+                    <input type="checkbox" name="compare_choice" value="${ch.id}" class="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${i<3?'checked':''}>
+                    <img src="${ch.image||'https://placehold.co/80x60/f5f5f5/666?text=?'}" class="w-14 h-10 object-contain rounded-lg border border-gray-200 bg-white p-0.5 flex-shrink-0">
+                    <div class="flex-grow min-w-0">
+                        <p class="text-sm font-bold text-gray-900">${ch.name}</p>
+                        <p class="text-xs text-gray-500 truncate">${ch.desc}</p>
+                    </div>
+                    <span class="text-sm font-black text-blue-600 flex-shrink-0">$${ch.price.toLocaleString()}</span>
+                </label>`).join('')}
+            </div>
+            <p id="selectorError" class="hidden text-red-600 text-sm font-medium mt-3"></p>
+            <button onclick="confirmChoiceSelection('${appId}','${tabType}')" class="w-full mt-6 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm">⇌ Compare Selected</button>
+        </div>
+    </div>`;
+}
+window.confirmChoiceSelection=function(appId,tabType){
+    const checked=[...document.querySelectorAll('#choiceSelectorList input:checked')].map(cb=>cb.value);
+    const errEl=document.getElementById('selectorError');
+    if(checked.length<2||checked.length>3){ errEl.textContent=`Please select 2 or 3 models (you selected ${checked.length}).`; errEl.classList.remove('hidden'); return; }
+    renderCompareView(appId,tabType,checked);
+};
+
+function renderCompareView(appId, tabType, selectedChoiceIds){
     const pool=tabType==='furniture'?[...furnitureItems,...appState.customItems.filter(i=>i.tab==='furniture')]:[...appliances,...appState.customItems.filter(i=>!i.tab||i.tab==='appliances')];
     const app=pool.find(a=>a.id===appId);
-    if(!app||app.choices.length<2){ document.getElementById('compareView').innerHTML=`<div class="text-center p-16 text-gray-400">Item not found.</div>`; return; }
-    const c1=app.choices[0], c2=app.choices[1], ins=app.insights;
-    const allKeys=[...new Set([...Object.keys(c1.specs||{}),...Object.keys(c2.specs||{})])];
-    const scoreLabels=[['performance','⚡ Performance'],['value','💰 Value for Money'],['durability','🛡 Durability'],['smart','📱 Smart Features'],['hkFit','🏙 HK Suitability']];
+    if(!app||app.choices.length<2){ document.getElementById('compareView').innerHTML=`<div class="text-center p-16 text-gray-400">Item not found or has fewer than 2 models.</div>`; return; }
 
-    let verdictCls='verdict-c1', verdictWinner=c1.name, verdictIcon='🏆';
-    if(ins){ if(ins.verdict==='c2'){ verdictCls='verdict-c2'; verdictWinner=c2.name; } else if(ins.verdict==='tie'){ verdictCls='verdict-tie'; verdictWinner='Both are strong choices'; verdictIcon='⚖️'; } }
+    if(!selectedChoiceIds&&app.choices.length>3){ showChoiceSelector(appId,tabType); return; }
 
-    const scoresBarsHtml = ins ? scoreLabels.map(([key,label])=>{
-        const s1=ins.c1.scores[key]||0, s2=ins.c2.scores[key]||0;
-        const winner=s1>s2?'c1':s2>s1?'c2':'tie';
-        return `<div class="grid grid-cols-[1fr_80px_1fr] gap-2 items-center text-xs">
-            <div><div class="score-bar-track mb-1"><div class="score-bar-c1 score-bar-fill" style="width:0%" data-w="${s1*10}%"></div></div><span class="text-blue-700 font-bold">${s1}/10 ${winner==='c1'?'<span class="text-emerald-500">▲</span>':''}</span></div>
-            <div class="text-center"><p class="font-bold text-gray-600 text-[10px] leading-tight">${label}</p></div>
-            <div><div class="score-bar-track mb-1"><div class="score-bar-c2 score-bar-fill" style="width:0%" data-w="${s2*10}%"></div></div><span class="text-amber-700 font-bold">${s2}/10 ${winner==='c2'?'<span class="text-emerald-500">▲</span>':''}</span></div>
+    const choices=selectedChoiceIds?app.choices.filter(c=>selectedChoiceIds.includes(c.id)):app.choices.slice(0,3);
+    const N=choices.length;
+    const ins=app.insights;
+    const allKeys=[...new Set(choices.flatMap(c=>Object.keys(c.specs||{})))];
+    const scoreLabels=[['performance','⚡ Performance'],['value','💰 Value'],['durability','🛡 Durability'],['smart','📱 Smart Features'],['hkFit','🏙 HK Fit']];
+    const gridCols=N===3?'grid-cols-1 md:grid-cols-3':'grid-cols-1 md:grid-cols-2';
+
+    const overalls=choices.map((c,i)=>{
+        const insKey=i===0?'c1':i===1?'c2':null;
+        if(ins&&insKey&&ins[insKey]?.scores){
+            const vals=Object.values(ins[insKey].scores);
+            return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+        }
+        return null;
+    });
+
+    let verdictHtml='';
+    if(ins){
+        let verdictCls='verdict-c1', verdictWinner=choices[0]?.name||'', verdictIcon='🏆';
+        if(ins.verdict==='c2'&&N>=2){ verdictCls='verdict-c2'; verdictWinner=choices[1]?.name||''; }
+        else if(ins.verdict==='tie'){ verdictCls='verdict-tie'; verdictWinner='Both are strong choices'; verdictIcon='⚖️'; }
+        verdictHtml=`<div class="${verdictCls} rounded-2xl p-6 text-white shadow-xl">
+            <div class="flex items-start gap-4">
+                <div class="text-3xl flex-shrink-0 mt-0.5">${verdictIcon}</div>
+                <div><p class="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Our Recommendation</p><h3 class="text-xl font-black mb-2">${verdictWinner}</h3><p class="text-white/85 text-sm leading-relaxed">${ins.verdictText}</p></div>
+            </div>
         </div>`;
-    }).join('') : '<p class="text-sm text-gray-400 italic">No score data available.</p>';
+    }
 
-    const overallC1 = ins ? Math.round(Object.values(ins.c1.scores).reduce((a,b)=>a+b,0)/Object.keys(ins.c1.scores).length*10)/10 : null;
-    const overallC2 = ins ? Math.round(Object.values(ins.c2.scores).reduce((a,b)=>a+b,0)/Object.keys(ins.c2.scores).length*10)/10 : null;
+    const cardsHtml=choices.map((c,i)=>{
+        const clr=COMPARE_COLORS[i];
+        return `<div class="bg-white rounded-2xl border overflow-hidden shadow-sm ${clr.border}">
+            <div class="h-1.5 w-full ${clr.bg}"></div>
+            <div class="p-5 flex flex-col items-center text-center">
+                <span class="text-xs font-black px-3 py-1 rounded-full border uppercase tracking-wide mb-3 ${clr.bgLight} ${clr.textDark} ${clr.border}">Model ${i+1}</span>
+                <img src="${c.image||'https://placehold.co/160x110/f5f5f5/666?text=?'}" alt="${c.name}" class="w-full h-32 object-contain mb-3 rounded-xl bg-gray-50 p-2">
+                <h3 class="text-base font-bold text-gray-900 mb-1">${c.name}</h3>
+                <div class="text-2xl font-black ${clr.text} my-1.5">$${c.price.toLocaleString()} <span class="text-xs text-gray-400 font-medium">HKD</span></div>
+                ${overalls[i]!==null?`<div class="text-xs font-bold ${clr.text} mb-2">Score: ${overalls[i]}/10</div>`:''}
+                <p class="text-xs text-gray-500 leading-relaxed mb-4 line-clamp-3">${c.desc}</p>
+                <a href="${c.link}" target="_blank" class="w-full py-2 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-700 transition shadow-sm">View Online ↗</a>
+            </div>
+        </div>`;
+    }).join('');
+
+    let prosConsHtml='';
+    if(ins){
+        const pairs=choices.map((c,i)=>{const k=i===0?'c1':i===1?'c2':null;return{choice:c,data:ins[k]||null,clr:COMPARE_COLORS[i]};}).filter(p=>p.data);
+        if(pairs.length>0){
+            prosConsHtml=`<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-5">⚖️ Pros & Cons</h3>
+                <div class="grid ${gridCols} gap-6">
+                    ${pairs.map(({choice,data,clr})=>`<div>
+                        <p class="text-xs font-black ${clr.text} uppercase tracking-wider mb-3">${choice.name}</p>
+                        <div class="space-y-2 mb-3">${data.pros.map(p=>`<div class="flex items-start gap-2 text-sm"><span class="text-emerald-500 mt-0.5 flex-shrink-0 font-bold">✓</span><span class="text-gray-700">${p}</span></div>`).join('')}</div>
+                        <div class="space-y-2">${data.cons.map(c=>`<div class="flex items-start gap-2 text-sm"><span class="text-red-400 mt-0.5 flex-shrink-0 font-bold">✗</span><span class="text-gray-500">${c}</span></div>`).join('')}</div>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+        }
+    }
+
+    let scoreBarsHtml='';
+    if(ins&&ins.c1?.scores){
+        const legend=choices.map((c,i)=>{const clr=COMPARE_COLORS[i];return`<span class="${clr.text} flex items-center gap-1.5 text-xs font-bold"><span class="w-3 h-3 rounded-full ${clr.bg} inline-block"></span>${c.name.split(' ').slice(0,2).join(' ')}</span>`;}).join('');
+        const bars=scoreLabels.map(([key,label])=>{
+            const scores=choices.map((c,i)=>{const k=i===0?'c1':i===1?'c2':null;return ins[k]?.scores?.[key]||0;});
+            const maxScore=Math.max(...scores);
+            return `<div class="space-y-1.5">
+                <p class="text-xs font-bold text-gray-600 mb-1">${label}</p>
+                ${choices.map((c,i)=>{const s=scores[i];const clr=COMPARE_COLORS[i];return`<div class="flex items-center gap-2">
+                    <div class="flex-grow"><div class="score-bar-track"><div class="${clr.barCls} score-bar-fill h-full rounded-full" style="width:0%" data-w="${s*10}%"></div></div></div>
+                    <span class="${clr.text} font-bold text-xs w-12 text-right">${s}/10 ${s===maxScore&&scores.filter(x=>x===maxScore).length===1?'<span class="text-emerald-500">▲</span>':''}</span>
+                </div>`;}).join('')}
+            </div>`;
+        }).join('');
+        scoreBarsHtml=`<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-2">📊 Score Comparison</h3>
+            <div class="flex flex-wrap gap-4 mb-5 mt-1">${legend}</div>
+            <div class="space-y-5" id="scoreBarsContainer">${bars}</div>
+        </div>`;
+    }
+
+    const specsHtml=`<div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-5">🔬 Technical Specifications</h3>
+        <div class="overflow-x-auto rounded-xl border border-gray-200">
+            <table class="w-full text-left border-collapse min-w-[500px]">
+                <thead><tr class="bg-gray-50 border-b border-gray-200">
+                    <th class="py-3 px-4 font-bold text-gray-500 text-xs uppercase tracking-wide">Feature</th>
+                    ${choices.map((c,i)=>`<th class="py-3 px-4 font-bold ${COMPARE_COLORS[i].text} text-xs">${c.name}</th>`).join('')}
+                </tr></thead>
+                <tbody>
+                    ${allKeys.map(k=>`<tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50/50"><td class="py-3 px-4 text-xs font-bold text-gray-600">${k}</td>${choices.map(c=>`<td class="py-3 px-4 text-xs text-gray-700">${c.specs?.[k]||'—'}</td>`).join('')}</tr>`).join('')}
+                </tbody>
+            </table>
+        </div>
+    </div>`;
+
+    const searchLinks=choices.map((c,i)=>{const clr=COMPARE_COLORS[i];return`
+        <a href="https://www.google.com/search?q=${encodeURIComponent(c.name+' Hong Kong price buy review')}" target="_blank" rel="noopener"
+            class="flex items-center gap-3 p-3 rounded-xl border ${clr.border} ${clr.bgLight} hover:opacity-80 transition group">
+            <span class="w-7 h-7 ${clr.bg} text-white rounded-lg flex items-center justify-center text-sm flex-shrink-0 shadow-sm">↗</span>
+            <div class="min-w-0"><p class="text-xs font-black ${clr.textDark} truncate">${c.name}</p><p class="text-[10px] ${clr.text} font-medium">Search on Google →</p></div>
+        </a>`;}).join('');
 
     document.getElementById('compareView').innerHTML=`
     <div class="flex justify-between items-center max-w-5xl mx-auto mt-6 px-4">
         <a href="${window.location.pathname}" class="text-sm font-bold text-gray-500 hover:text-gray-800 transition flex items-center gap-1.5">← Back to Dashboard</a>
-        <button id="darkModeToggle" onclick="toggleDarkMode()" class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-base hover:bg-gray-100 transition shadow-sm" aria-label="Toggle dark/light mode" title="Toggle dark/light mode">${document.documentElement.classList.contains('dark')?'☀️':'🌙'}</button>
+        <button id="darkModeToggle" onclick="toggleDarkMode()" class="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white text-base hover:bg-gray-100 transition shadow-sm">${document.documentElement.classList.contains('dark')?'☀️':'🌙'}</button>
     </div>
     <div class="max-w-5xl mx-auto mt-4 px-4 space-y-6">
-
-        ${ins?`<!-- VERDICT BANNER -->
-        <div class="${verdictCls} rounded-2xl p-6 text-white shadow-xl">
-            <div class="flex items-start gap-4">
-                <div class="text-3xl flex-shrink-0 mt-0.5">${verdictIcon}</div>
-                <div>
-                    <p class="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Our Recommendation</p>
-                    <h3 class="text-xl font-black mb-2">${verdictWinner}</h3>
-                    <p class="text-white/85 text-sm leading-relaxed">${ins.verdictText}</p>
-                </div>
-            </div>
-        </div>`:'' }
-
-        <!-- SIDE BY SIDE CARDS -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            ${[c1,c2].map((c,i)=>`
-            <div class="bg-white rounded-2xl border overflow-hidden shadow-sm ${i===0?'border-blue-200':'border-amber-200'}">
-                <div class="h-1.5 w-full ${i===0?'bg-blue-500':'bg-amber-400'}"></div>
-                <div class="p-6 flex flex-col items-center text-center">
-                    <span class="text-xs font-black px-3 py-1 rounded-full border uppercase tracking-wide mb-4 ${i===0?'bg-blue-50 text-blue-800 border-blue-200':'bg-amber-50 text-amber-800 border-amber-200'}">${i===0?'Best Performance':'Value & Durable'}</span>
-                    <img src="${c.image}" alt="${c.name}" class="w-full h-40 object-contain mb-4 rounded-xl bg-gray-50 p-2">
-                    <h3 class="text-lg font-bold text-gray-900 mb-1">${c.name}</h3>
-                    ${ins?`<div class="text-3xl font-black ${i===0?'text-blue-600':'text-amber-600'} my-2">$${c.price.toLocaleString()} <span class="text-sm text-gray-400 font-medium">HKD</span></div>
-                    <div class="text-sm font-bold ${i===0?'text-blue-700':'text-amber-700'} mb-3">Overall Score: ${i===0?overallC1:overallC2}/10</div>`:`<div class="text-3xl font-black text-blue-600 my-2">$${c.price.toLocaleString()} <span class="text-sm text-gray-400 font-medium">HKD</span></div>`}
-                    <p class="text-sm text-gray-500 leading-relaxed mb-5">${c.desc}</p>
-                    <a href="${c.link}" target="_blank" class="w-full py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-700 transition shadow-sm" aria-label="View ${c.name} online">View Online ↗</a>
-                </div>
-            </div>`).join('')}
-        </div>
-
-        ${ins?`<!-- PROS / CONS -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-5">⚖️ Pros & Cons</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                ${[{choice:c1,data:ins.c1,color:'blue'},{choice:c2,data:ins.c2,color:'amber'}].map(({choice,data,color})=>`
-                <div>
-                    <p class="text-xs font-black text-${color}-700 uppercase tracking-wider mb-3">${choice.name}</p>
-                    <div class="space-y-2 mb-3">
-                        ${data.pros.map(p=>`<div class="flex items-start gap-2 text-sm"><span class="text-emerald-500 mt-0.5 flex-shrink-0 font-bold">✓</span><span class="text-gray-700">${p}</span></div>`).join('')}
-                    </div>
-                    <div class="space-y-2">
-                        ${data.cons.map(c=>`<div class="flex items-start gap-2 text-sm"><span class="text-red-400 mt-0.5 flex-shrink-0 font-bold">✗</span><span class="text-gray-500">${c}</span></div>`).join('')}
-                    </div>
-                </div>`).join('')}
-            </div>
-        </div>
-
-        <!-- SCORE COMPARISON -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-2">📊 Score Comparison</h3>
-            <div class="flex justify-between text-xs font-bold mb-5 mt-1">
-                <span class="text-blue-700 flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span>${c1.name.split(' ').slice(0,2).join(' ')}</span>
-                <span class="text-amber-700 flex items-center gap-1.5">${c2.name.split(' ').slice(0,2).join(' ')}<span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span></span>
-            </div>
-            <div class="space-y-4" id="scoreBarsContainer">${scoresBarsHtml}</div>
-        </div>`:'' }
-
-        <!-- TECHNICAL SPECS -->
-        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-widest mb-5">🔬 Technical Specifications</h3>
-            <div class="overflow-hidden rounded-xl border border-gray-200">
-                <table class="w-full text-left border-collapse">
-                    <thead><tr class="bg-gray-50 border-b border-gray-200">
-                        <th class="py-3 px-4 font-bold text-gray-500 w-1/3 text-xs uppercase tracking-wide">Feature</th>
-                        <th class="py-3 px-4 font-bold text-blue-700 text-xs">${c1.name}</th>
-                        <th class="py-3 px-4 font-bold text-amber-700 text-xs">${c2.name}</th>
-                    </tr></thead>
-                    <tbody>
-                        ${allKeys.map(k=>`<tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50/50"><td class="py-3 px-4 text-xs font-bold text-gray-600">${k}</td><td class="py-3 px-4 text-xs text-gray-700">${c1.specs?.[k]||'—'}</td><td class="py-3 px-4 text-xs text-gray-700">${c2.specs?.[k]||'—'}</td></tr>`).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- SEARCH FOR MORE + ADD URL -->
+        ${verdictHtml}
+        <div class="grid ${gridCols} gap-5">${cardsHtml}</div>
+        ${prosConsHtml}
+        ${scoreBarsHtml}
+        ${specsHtml}
         <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 search-section">
-            <div class="flex items-start gap-3 mb-5">
-                <div class="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center text-lg flex-shrink-0 shadow-sm">🔍</div>
-                <div>
-                    <h3 class="text-base font-bold text-gray-800">Search for More</h3>
-                    <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Search Google for more details, prices, reviews, and alternatives for these products in Hong Kong.</p>
-                </div>
+            <div class="flex items-start gap-3 mb-4">
+                <div class="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center text-base flex-shrink-0 shadow-sm">🔍</div>
+                <div><h3 class="text-sm font-bold text-gray-800">Search for More</h3><p class="text-xs text-gray-500 mt-0.5">Find reviews, prices, and alternatives on Google.</p></div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
-                <a href="https://www.google.com/search?q=${encodeURIComponent(c1.name+' Hong Kong price buy review')}" target="_blank" rel="noopener"
-                    class="flex items-center gap-3 p-3.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 transition group">
-                    <span class="w-8 h-8 bg-blue-500 text-white rounded-lg flex items-center justify-center text-sm flex-shrink-0 shadow-sm group-hover:bg-blue-600 transition">↗</span>
-                    <div class="min-w-0">
-                        <p class="text-xs font-black text-blue-800 truncate">${c1.name}</p>
-                        <p class="text-[10px] text-blue-500 font-medium">Search on Google →</p>
-                    </div>
-                </a>
-                <a href="https://www.google.com/search?q=${encodeURIComponent(c2.name+' Hong Kong price buy review')}" target="_blank" rel="noopener"
-                    class="flex items-center gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition group">
-                    <span class="w-8 h-8 bg-amber-500 text-white rounded-lg flex items-center justify-center text-sm flex-shrink-0 shadow-sm group-hover:bg-amber-600 transition">↗</span>
-                    <div class="min-w-0">
-                        <p class="text-xs font-black text-amber-800 truncate">${c2.name}</p>
-                        <p class="text-[10px] text-amber-500 font-medium">Search on Google →</p>
-                    </div>
-                </a>
+            <div class="grid grid-cols-1 ${N<=2?'sm:grid-cols-2':''} gap-2.5 mb-4">${searchLinks}
                 <a href="https://www.google.com/search?q=${encodeURIComponent(app.name+' best option Hong Kong 2025')}" target="_blank" rel="noopener"
-                    class="sm:col-span-2 flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition group">
-                    <span class="w-8 h-8 bg-gray-600 text-white rounded-lg flex items-center justify-center text-sm flex-shrink-0 shadow-sm group-hover:bg-gray-700 transition">🔎</span>
-                    <div class="min-w-0">
-                        <p class="text-xs font-black text-gray-800">Find more "${app.name}" alternatives in HK</p>
-                        <p class="text-[10px] text-gray-500 font-medium">Browse alternatives and compare prices →</p>
-                    </div>
+                    class="${N<=2?'sm:col-span-2':''} flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition group">
+                    <span class="w-7 h-7 bg-gray-600 text-white rounded-lg flex items-center justify-center text-sm flex-shrink-0 shadow-sm">🔎</span>
+                    <div class="min-w-0"><p class="text-xs font-black text-gray-800">Find more "${app.name}" alternatives</p><p class="text-[10px] text-gray-500 font-medium">Browse alternatives →</p></div>
                 </a>
             </div>
-            <div class="border-t border-gray-100 pt-5">
-                <p class="text-xs text-gray-500 mb-3 font-medium">Found a better option while browsing? Add it to your list:</p>
-                <button onclick="openUrlModal()" class="w-full py-3 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition shadow-sm flex items-center justify-center gap-2" aria-label="Add product from URL">
-                    🔗 Add Product from URL
-                </button>
+            <div class="border-t border-gray-100 pt-4">
+                <button onclick="openUrlModal()" class="w-full py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition shadow-sm flex items-center justify-center gap-2">🔗 Add Product from URL</button>
             </div>
         </div>
-
-        <!-- CLOSE BTN -->
         <div class="text-center pb-4">
-            <button onclick="window.close()" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition" aria-label="Close tab">Close Tab</button>
+            <button onclick="window.close()" class="px-6 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition">Close Tab</button>
         </div>
     </div>`;
 
-    // Animate score bars
-    requestAnimationFrame(()=>{
-        requestAnimationFrame(()=>{
-            document.querySelectorAll('.score-bar-fill').forEach(bar=>{ bar.style.width=bar.dataset.w||'0%'; });
-        });
-    });
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{
+        document.querySelectorAll('.score-bar-fill').forEach(bar=>{ bar.style.width=bar.dataset.w||'0%'; });
+    }); });
 }
 
 // ============================================================
@@ -1393,16 +2009,23 @@ function _updateDarkBtn(isDark){
 // INIT
 // ============================================================
 initDarkMode(); // run before anything renders to avoid flash
-const urlP=new URLSearchParams(window.location.search), compareId=urlP.get('compare'), compareTab=urlP.get('tab');
+const urlP=new URLSearchParams(window.location.search), compareId=urlP.get('compare'), compareTab=urlP.get('tab'), compareChoices=urlP.get('choices');
 function initApp(){
     loadState();
+    if(appState.addedChoices){
+        for(const[targetId,added] of Object.entries(appState.addedChoices)){
+            const target=[...appliances,...furnitureItems].find(i=>i.id===targetId);
+            if(target) added.forEach(ch=>{if(!target.choices.find(c=>c.id===ch.id)) target.choices.push(ch);});
+        }
+    }
     if(compareId){
-        const found=[...appliances,...furnitureItems].find(a=>a.id===compareId);
+        const found=[...appliances,...furnitureItems,...appState.customItems].find(a=>a.id===compareId);
         document.title='Compare: '+(found?.name||'Item');
         document.querySelector('header').style.display='none';
         document.getElementById('mainDashboard').style.display='none';
         document.getElementById('compareView').classList.remove('hidden');
-        renderCompareView(compareId,compareTab);
+        const selIds=compareChoices?compareChoices.split(','):null;
+        renderCompareView(compareId,compareTab,selIds);
     } else {
         updateBudgetLabels(); initChart(); renderContent(); renderFurniture(); calculateTotals();
     }
