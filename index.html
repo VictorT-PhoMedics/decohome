@@ -330,71 +330,59 @@
                 <p class="text-xs text-blue-600 leading-relaxed">Supports Fortress, Gain City, HKTVMALL, Panasonic HK, Sony HK, and most product pages with Open Graph metadata. Price is always entered manually for accuracy.</p>
             </div>
         </div>
-        <!-- Step 2: Preview & confirm -->
-        <div id="urlStep2" class="hidden p-6 space-y-5">
+        <!-- Step 2: Fetching + auto-discovery progress -->
+        <div id="urlStep2" class="hidden p-6 space-y-4">
             <div class="flex items-start gap-4 bg-gray-50 rounded-xl p-4 border border-gray-200">
                 <img id="fetchedImagePreview" src="" alt="Product image" class="w-20 h-16 object-contain rounded-lg border border-gray-200 bg-white p-1 flex-shrink-0">
-                <div class="flex-grow">
-                    <p class="text-xs font-bold text-violet-600 uppercase tracking-wide mb-0.5">Fetched from URL</p>
+                <div class="flex-grow min-w-0">
+                    <p class="text-xs font-bold text-violet-600 uppercase tracking-wide mb-0.5">Your Product</p>
                     <p id="fetchedSourceUrl" class="text-xs text-gray-400 truncate"></p>
+                    <p id="fetchedPrimaryName" class="text-sm font-bold text-gray-800 mt-1 truncate"></p>
                 </div>
             </div>
-            <div id="duplicateWarning" class="hidden bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700"></div>
-            <div class="grid grid-cols-1 gap-4">
+            <div id="urlDiscoveryStatus" class="text-xs text-blue-600 font-medium bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-2">
+                <span class="animate-spin">⏳</span><span id="urlDiscoveryMsg">Searching for similar products...</span>
+            </div>
+            <div id="urlProductGrid" class="hidden space-y-3"></div>
+            <div id="urlCatalogOptions" class="hidden space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedName">Product Name *</label>
-                    <input type="text" id="fetchedName" oninput="checkDuplicateName(this.value)" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product name">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedDesc">Description</label>
-                    <textarea id="fetchedDesc" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50 resize-none" aria-label="Product description"></textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedPrice">Price *</label>
-                        <div class="flex gap-1.5">
-                            <input type="number" id="fetchedPrice" placeholder="e.g. 3500" oninput="convertCurrency()" class="flex-grow border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Product price">
-                            <select id="fetchedCurrency" onchange="convertCurrency()" class="w-20 border border-gray-200 rounded-xl px-2 py-2.5 text-xs font-bold focus:border-violet-500 outline-none bg-gray-50" aria-label="Currency">
-                                <option value="HKD">HKD</option><option value="USD">USD</option><option value="RMB">RMB</option><option value="GBP">GBP</option><option value="EUR">EUR</option><option value="JPY">JPY</option>
-                            </select>
-                        </div>
-                        <p id="currencyConvert" class="text-xs text-gray-400 mt-1 hidden"></p>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedCategory">Category *</label>
-                        <input type="text" id="fetchedCategory" placeholder="e.g. Kitchen" list="categoryDatalist" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Category">
-                        <datalist id="categoryDatalist"></datalist>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedAddMode">Add as</label>
-                    <select id="fetchedAddMode" onchange="toggleExistingItemSelect()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Add mode">
-                        <option value="new">🆕 New standalone item</option>
-                        <option value="existing">➕ Add as comparison model under existing item</option>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Where to add?</label>
+                    <select id="urlAddTarget" onchange="toggleUrlAddTarget()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50">
+                        <option value="new">🆕 Create new item type</option>
                     </select>
                 </div>
-                <div id="existingItemRow" class="hidden">
-                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="existingItemSelect">Add under which item?</label>
-                    <select id="existingItemSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Select existing item"></select>
-                    <p class="text-xs text-gray-400 mt-1">This product will appear as a comparison choice alongside existing models.</p>
-                </div>
-                <div id="newItemFields" class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedTab">Add to Tab</label>
-                        <select id="fetchedTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Tab"><option value="appliances">Appliances</option><option value="furniture">Furniture</option></select>
+                <div id="urlNewItemFields" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedItemName">Item Type Name *</label>
+                            <input type="text" id="fetchedItemName" placeholder="e.g. Air Purifier" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedCategory">Category *</label>
+                            <input type="text" id="fetchedCategory" placeholder="e.g. Kitchen" list="categoryDatalist" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50">
+                            <datalist id="categoryDatalist"></datalist>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedPriority">Priority</label>
-                        <select id="fetchedPriority" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50" aria-label="Priority"><option value="Good to Have">Good to Have</option><option value="Necessary">Necessary</option></select>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedTab">Tab</label>
+                            <select id="fetchedTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50"><option value="appliances">Appliances</option><option value="furniture">Furniture</option></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="fetchedPriority">Priority</label>
+                            <select id="fetchedPriority" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none bg-gray-50"><option value="Good to Have">Good to Have</option><option value="Necessary">Necessary</option></select>
+                        </div>
                     </div>
                 </div>
             </div>
             <div id="urlConfirmError" class="hidden text-red-600 text-sm font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"></div>
-            <div class="flex gap-2.5">
-                <button onclick="resetUrlModal()" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition flex-shrink-0" aria-label="Try another URL">← Try Another</button>
-                <button onclick="confirmAddProduct()" class="flex-grow py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition shadow-sm" aria-label="Add product to catalog">✓ Add to Catalog</button>
+            <div id="urlStep2Buttons" class="hidden flex gap-2.5">
+                <button onclick="resetUrlModal()" class="px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition flex-shrink-0">← Start Over</button>
+                <button onclick="confirmAddSelectedProducts()" class="flex-grow py-2.5 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition shadow-sm">✓ Add Selected to Catalog</button>
             </div>
         </div>
+        <!-- Hidden fields for legacy compat -->
+        <input type="hidden" id="fetchedName"><input type="hidden" id="fetchedDesc"><input type="hidden" id="fetchedPrice"><input type="hidden" id="fetchedCurrency" value="HKD"><input type="hidden" id="fetchedAddMode" value="new"><input type="hidden" id="existingItemSelect"><input type="hidden" id="duplicateWarning"><input type="hidden" id="currencyConvert"><input type="hidden" id="newItemFields">
     </div>
 </div>
 
@@ -409,14 +397,18 @@
         <div class="p-6 space-y-5">
             <div>
                 <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">What would you like to add?</label>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="addModeButtons">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2" id="addModeButtons">
                     <button onclick="setAddMode('type')" id="addModeType" class="p-3 rounded-xl border-2 border-blue-500 bg-blue-50 text-left transition hover:bg-blue-100">
-                        <span class="text-sm font-bold text-blue-800 block">📦 New Appliance Type</span>
-                        <span class="text-xs text-blue-600">e.g., "Air Fryer" under Kitchen</span>
+                        <span class="text-sm font-bold text-blue-800 block">📦 New Item</span>
+                        <span class="text-xs text-blue-600">e.g., "Air Fryer"</span>
                     </button>
                     <button onclick="setAddMode('category')" id="addModeCategory" class="p-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-left transition hover:bg-gray-100">
                         <span class="text-sm font-bold text-gray-800 block">🏷 New Category</span>
-                        <span class="text-xs text-gray-500">e.g., "Laundry" or "Bathroom"</span>
+                        <span class="text-xs text-gray-500">e.g., "Bathroom"</span>
+                    </button>
+                    <button onclick="setAddMode('rename')" id="addModeRename" class="p-3 rounded-xl border-2 border-gray-200 bg-gray-50 text-left transition hover:bg-gray-100">
+                        <span class="text-sm font-bold text-gray-800 block">✏️ Rename Category</span>
+                        <span class="text-xs text-gray-500">Edit existing name</span>
                     </button>
                 </div>
             </div>
@@ -431,6 +423,20 @@
                     <select id="newCategoryTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50"><option value="appliances">Appliances</option><option value="furniture">Furniture</option></select>
                 </div>
                 <p class="text-xs text-gray-400">After creating the category, you can add items to it from the "Add" button or via URL import.</p>
+            </div>
+            <!-- Rename Category fields -->
+            <div id="renameCategoryFields" class="hidden space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Select Category to Rename</label>
+                    <select id="renameCatSelect" onchange="onRenameCatSelect()" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50">
+                        <option value="">— Choose a category —</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide" for="renameCatNewName">New Category Name *</label>
+                    <input type="text" id="renameCatNewName" placeholder="Enter new name..." class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50" aria-label="New category name">
+                </div>
+                <p class="text-xs text-gray-400">All items in this category will be updated to the new name.</p>
             </div>
             <!-- New Appliance Type fields -->
             <div id="addTypeFields" class="space-y-4">
@@ -455,13 +461,25 @@
                     <textarea id="newTypeContext" rows="2" placeholder="Why is this item needed?" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-gray-50 resize-none" aria-label="Context"></textarea>
                 </div>
                 <fieldset class="border border-gray-200 rounded-xl p-4">
-                    <legend class="text-xs font-bold text-gray-500 uppercase tracking-wide px-2">First Model / Choice (optional — can add via URL later)</legend>
+                    <legend class="text-xs font-bold text-gray-500 uppercase tracking-wide px-2">Add Models</legend>
                     <div class="space-y-3 mt-2">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelName">Model Name</label><input type="text" id="newTypeModelName" placeholder="e.g. Philips HD9270" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
-                            <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelPrice">Price (HKD)</label><input type="number" id="newTypeModelPrice" placeholder="2500" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                        <div class="flex gap-2">
+                            <button type="button" onclick="setModelAddMode('auto')" id="modelModeAuto" class="flex-1 p-2.5 rounded-lg border-2 border-blue-500 bg-blue-50 text-xs font-bold text-blue-700 transition hover:bg-blue-100">🔍 Auto-Find Best Models</button>
+                            <button type="button" onclick="setModelAddMode('manual')" id="modelModeManual" class="flex-1 p-2.5 rounded-lg border-2 border-gray-200 bg-gray-50 text-xs font-bold text-gray-600 transition hover:bg-gray-100">✏️ Manual Entry</button>
                         </div>
-                        <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelLink">Product URL</label><input type="text" id="newTypeModelLink" placeholder="https://..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                        <div id="autoSearchSection">
+                            <p class="text-xs text-gray-500 leading-relaxed mb-2">Enter the item name above, then click search. We'll find the <strong>top 2 recommended models</strong> for you.</p>
+                            <button type="button" onclick="autoSearchModels(document.getElementById('newTypeName').value.trim())" class="w-full py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 transition flex items-center justify-center gap-1.5">🔍 Search for Best Models</button>
+                            <div id="autoSearchStatus" class="hidden mt-2 text-xs text-blue-600 font-medium bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-center gap-2"><span class="animate-spin">⏳</span><span id="autoSearchMsg">Searching...</span></div>
+                            <div id="autoSearchResults" class="hidden mt-3 space-y-2"></div>
+                        </div>
+                        <div id="manualModelSection" class="hidden space-y-3">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelName">Model Name</label><input type="text" id="newTypeModelName" placeholder="e.g. Philips HD9270" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                                <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelPrice">Price (HKD)</label><input type="number" id="newTypeModelPrice" placeholder="2500" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                            </div>
+                            <div><label class="block text-xs font-semibold text-gray-600 mb-1" for="newTypeModelLink">Product URL</label><input type="text" id="newTypeModelLink" placeholder="https://..." class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white"></div>
+                        </div>
                     </div>
                 </fieldset>
             </div>
@@ -469,7 +487,63 @@
         </div>
         <div class="border-t border-gray-100 px-5 py-4 flex justify-end gap-2.5 bg-gray-50 rounded-b-2xl">
             <button onclick="closeAddItemModal()" class="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition">Cancel</button>
-            <button onclick="confirmAddItem()" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm">Add to Catalog</button>
+            <button onclick="confirmAddItem()" id="addItemConfirmBtn" class="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition shadow-sm">Add to Catalog</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== EDIT ITEM MODAL ===================== -->
+<div id="editItemModal" class="hidden">
+    <div class="modal-bd" onclick="closeEditModal()"></div>
+    <div class="modal-box bg-white shadow-2xl" style="max-height:90vh;overflow-y:auto">
+        <div class="bg-indigo-700 p-5 text-white flex justify-between items-center rounded-t-2xl">
+            <div><h2 class="text-lg font-bold">✏️ Edit Item</h2><p class="text-indigo-200 text-xs mt-0.5" id="editModalSubtitle">Modify item details and models</p></div>
+            <button onclick="closeEditModal()" class="text-white/70 hover:text-white text-2xl font-bold leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/10 transition" aria-label="Close">×</button>
+        </div>
+        <div class="p-6 space-y-5">
+            <input type="hidden" id="editItemId">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Item Name *</label>
+                    <input type="text" id="editItemName" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-gray-50">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Category</label>
+                    <input type="text" id="editItemCategory" list="editCatDatalist" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-gray-50">
+                    <datalist id="editCatDatalist"></datalist>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Priority</label>
+                    <select id="editItemPriority" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-gray-50">
+                        <option value="Necessary">Necessary</option><option value="Good to Have">Good to Have</option><option value="Custom">Custom</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Tab</label>
+                    <select id="editItemTab" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-gray-50">
+                        <option value="appliances">Appliances</option><option value="furniture">Furniture</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Description / Context</label>
+                <textarea id="editItemContext" rows="2" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none bg-gray-50 resize-none"></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Models / Choices</label>
+                <div id="editChoicesList" class="space-y-3"></div>
+                <button type="button" onclick="addEditChoice()" class="mt-3 w-full py-2 border-2 border-dashed border-gray-300 rounded-xl text-xs font-bold text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition">+ Add Another Model</button>
+            </div>
+            <div id="editItemError" class="hidden text-red-600 text-sm font-medium bg-red-50 border border-red-100 rounded-xl px-4 py-2.5"></div>
+        </div>
+        <div class="border-t border-gray-100 px-5 py-4 flex justify-between bg-gray-50 rounded-b-2xl">
+            <button onclick="confirmDeleteItem()" class="px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl text-sm font-bold hover:bg-red-100 transition">🗑 Delete Item</button>
+            <div class="flex gap-2.5">
+                <button onclick="closeEditModal()" class="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-bold hover:bg-gray-100 transition">Cancel</button>
+                <button onclick="confirmEditItem()" class="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 transition shadow-sm">Save Changes</button>
+            </div>
         </div>
     </div>
 </div>
@@ -895,7 +969,7 @@ const furnitureItems = [
 // ============================================================
 // STATE
 // ============================================================
-const DEFAULT_STATE = { cart:{}, budgetMin:30000, budgetMax:50000, apiKey:'', customItems:[], addedChoices:{}, customCategories:[], wishlist:[], itemStatus:{}, notes:{} };
+const DEFAULT_STATE = { cart:{}, budgetMin:30000, budgetMax:50000, apiKey:'', customItems:[], addedChoices:{}, customCategories:[], wishlist:[], itemStatus:{}, notes:{}, renamedCategories:{}, editedItems:{} };
 let appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
 let _undoStack = [];
 const CURRENCY_RATES = { HKD:1, USD:7.8, RMB:1.08, CNY:1.08, GBP:9.8, EUR:8.5, JPY:0.052 };
@@ -1027,16 +1101,156 @@ function openAddItemModal(tab){
 }
 function closeAddItemModal(){
     document.getElementById('addItemModal').classList.add('hidden');
-    ['newTypeName','newTypeCategory','newTypeContext','newTypeModelName','newTypeModelPrice','newTypeModelLink','newCategoryName'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    ['newTypeName','newTypeCategory','newTypeContext','newTypeModelName','newTypeModelPrice','newTypeModelLink','newCategoryName','renameCatNewName'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     document.getElementById('addItemError').classList.add('hidden');
     document.getElementById('addTypeDuplicateWarn').classList.add('hidden');
+    _autoSearchResults=[];
+    const ar=document.getElementById('autoSearchResults'); if(ar){ ar.classList.add('hidden'); ar.innerHTML=''; }
+    const as=document.getElementById('autoSearchStatus'); if(as) as.classList.add('hidden');
+    _modelAddMode='auto';
 }
+let _modelAddMode='auto';
+let _autoSearchResults=[];
 function setAddMode(mode){
     _addMode=mode;
     document.getElementById('addModeType').className='p-3 rounded-xl border-2 transition hover:bg-blue-100 '+(mode==='type'?'border-blue-500 bg-blue-50':'border-gray-200 bg-gray-50');
     document.getElementById('addModeCategory').className='p-3 rounded-xl border-2 transition hover:bg-gray-100 '+(mode==='category'?'border-blue-500 bg-blue-50':'border-gray-200 bg-gray-50');
+    document.getElementById('addModeRename').className='p-3 rounded-xl border-2 transition hover:bg-gray-100 '+(mode==='rename'?'border-blue-500 bg-blue-50':'border-gray-200 bg-gray-50');
     document.getElementById('addTypeFields').classList.toggle('hidden',mode!=='type');
     document.getElementById('addCategoryFields').classList.toggle('hidden',mode!=='category');
+    document.getElementById('renameCategoryFields').classList.toggle('hidden',mode!=='rename');
+    const btn=document.getElementById('addItemConfirmBtn');
+    if(mode==='rename'){ btn.textContent='Rename Category'; populateRenameCatSelect(); }
+    else btn.textContent='Add to Catalog';
+}
+function setModelAddMode(mode){
+    _modelAddMode=mode;
+    document.getElementById('modelModeAuto').className='flex-1 p-2.5 rounded-lg border-2 text-xs font-bold transition '+(mode==='auto'?'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100':'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100');
+    document.getElementById('modelModeManual').className='flex-1 p-2.5 rounded-lg border-2 text-xs font-bold transition '+(mode==='manual'?'border-blue-500 bg-blue-50 text-blue-700 hover:bg-blue-100':'border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100');
+    document.getElementById('autoSearchSection').classList.toggle('hidden',mode!=='auto');
+    document.getElementById('manualModelSection').classList.toggle('hidden',mode!=='manual');
+}
+function populateRenameCatSelect(){
+    const sel=document.getElementById('renameCatSelect');
+    const cats=[...new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category))].sort();
+    sel.innerHTML='<option value="">— Choose a category —</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+function onRenameCatSelect(){
+    const sel=document.getElementById('renameCatSelect');
+    document.getElementById('renameCatNewName').value=sel.value;
+}
+async function autoSearchModels(itemName){
+    if(!itemName||itemName.length<2) return;
+    _autoSearchResults=[];
+    const statusEl=document.getElementById('autoSearchStatus');
+    const msgEl=document.getElementById('autoSearchMsg');
+    const resultsEl=document.getElementById('autoSearchResults');
+    statusEl.classList.remove('hidden'); resultsEl.classList.add('hidden');
+    msgEl.textContent=`Searching for best "${itemName}" models...`;
+
+    try{
+        const queries=[
+            `best ${itemName} Hong Kong buy 2025 top model`,
+            `${itemName} recommended popular model review`
+        ];
+        const allProducts=[];
+
+        for(const q of queries){
+            try{
+                const ddgUrl=`https://api.allorigins.win/get?url=${encodeURIComponent('https://html.duckduckgo.com/html/?q='+encodeURIComponent(q))}`;
+                const resp=await fetch(ddgUrl,{signal:AbortSignal.timeout(8000)});
+                const data=await resp.json();
+                if(data.contents){
+                    const doc=new DOMParser().parseFromString(data.contents,'text/html');
+                    const results=doc.querySelectorAll('.result__title a, .result__a');
+                    results.forEach(a=>{
+                        let href=a.getAttribute('href')||'';
+                        if(href.includes('uddg=')) href=decodeURIComponent(href.split('uddg=')[1]?.split('&')[0]||'');
+                        const title=(a.textContent||'').trim();
+                        if(title&&href&&href.startsWith('http')&&!href.includes('duckduckgo')&&!href.includes('youtube')){
+                            allProducts.push({title,url:href});
+                        }
+                    });
+                    const snippets=doc.querySelectorAll('.result__snippet');
+                    snippets.forEach((s,i)=>{
+                        if(allProducts[i]) allProducts[i].snippet=(s.textContent||'').trim();
+                    });
+                }
+            }catch(_){}
+        }
+
+        const unique=[];
+        const seen=new Set();
+        for(const p of allProducts){
+            const host=(() => { try{return new URL(p.url).hostname;}catch(_){return '';} })();
+            if(!seen.has(host)&&p.title.length>5){ seen.add(host); unique.push(p); }
+            if(unique.length>=6) break;
+        }
+
+        msgEl.textContent=`Found ${unique.length} results. Fetching product details...`;
+
+        const detailed=[];
+        for(const p of unique.slice(0,4)){
+            if(detailed.length>=2) break;
+            try{
+                const mResp=await fetch(`https://api.microlink.io?url=${encodeURIComponent(p.url)}&timeout=6000`,{signal:AbortSignal.timeout(7000)});
+                const mData=await mResp.json();
+                if(mData.status==='success'&&mData.data){
+                    const d=mData.data;
+                    const title=d.title||p.title||'';
+                    const desc=d.description||p.snippet||'';
+                    const img=d.image?.url||'';
+                    const priceMatch=(title+' '+desc).match(/(?:HK\$|HKD|USD|\$|¥|£|€)\s?[\d,]+(?:\.\d{1,2})?|[\d,]+(?:\.\d{1,2})?\s?(?:HKD|USD|RMB|CNY)/i);
+                    let price=0;
+                    if(priceMatch){
+                        price=parseInt(priceMatch[0].replace(/[^\d.]/g,''))||0;
+                        if(priceMatch[0].match(/USD|\$/i)&&!priceMatch[0].match(/HK/i)&&price<2000) price=Math.round(price*7.8);
+                        if(priceMatch[0].match(/¥|RMB|CNY/i)) price=Math.round(price*1.08);
+                    }
+                    const name=extractModelName(title,itemName);
+                    detailed.push({name:name||title.slice(0,50),price,desc:desc.slice(0,120),image:img,url:p.url});
+                }
+            }catch(_){}
+        }
+
+        if(detailed.length<2){
+            for(const p of unique){
+                if(detailed.length>=2) break;
+                if(detailed.some(d=>d.url===p.url)) continue;
+                const name=extractModelName(p.title,itemName);
+                detailed.push({name:name||p.title.slice(0,50),price:0,desc:(p.snippet||'').slice(0,120),image:'',url:p.url});
+            }
+        }
+
+        _autoSearchResults=detailed.slice(0,2);
+
+        if(_autoSearchResults.length){
+            statusEl.classList.add('hidden');
+            resultsEl.classList.remove('hidden');
+            resultsEl.innerHTML=_autoSearchResults.map((r,i)=>`
+                <div class="border border-gray-200 rounded-xl p-3 bg-white space-y-2">
+                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wide">Model ${i+1}</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="text-[10px] font-bold text-gray-500">Name</label><input type="text" id="autoModel${i}Name" value="${r.name.replace(/"/g,'&quot;')}" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-gray-50"></div>
+                        <div><label class="text-[10px] font-bold text-gray-500">Price (HKD)</label><input type="number" id="autoModel${i}Price" value="${r.price||''}" placeholder="Enter price" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-gray-50"></div>
+                    </div>
+                    <div><label class="text-[10px] font-bold text-gray-500">Description</label><input type="text" id="autoModel${i}Desc" value="${r.desc.replace(/"/g,'&quot;')}" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-gray-50"></div>
+                    <div><label class="text-[10px] font-bold text-gray-500">URL</label><input type="text" id="autoModel${i}Url" value="${r.url}" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-blue-400 bg-gray-50 text-blue-600"></div>
+                </div>`).join('')+
+                `<p class="text-xs text-gray-400 mt-1">Edit any fields above before adding. Prices may need manual verification.</p>`;
+        } else {
+            msgEl.textContent='Could not find specific models automatically. You can add them manually instead.';
+            statusEl.querySelector('.animate-spin').textContent='⚠️';
+        }
+    }catch(e){
+        msgEl.textContent='Search failed — check your connection or add models manually.';
+        statusEl.querySelector('.animate-spin').textContent='⚠️';
+    }
+}
+function extractModelName(title,itemName){
+    const clean=title.replace(/\s*[-–|:,].*(review|best|top|guide|vs|comparison|buy).*/i,'').trim();
+    const words=clean.split(/\s+/).slice(0,6).join(' ');
+    return words.length>4?words:clean.slice(0,50);
 }
 function checkAddTypeDuplicate(val){
     const w=document.getElementById('addTypeDuplicateWarn');
@@ -1051,6 +1265,29 @@ function checkAddTypeDuplicate(val){
 }
 function confirmAddItem(){
     const err=document.getElementById('addItemError');
+
+    if(_addMode==='rename'){
+        const oldName=document.getElementById('renameCatSelect').value;
+        const newName=document.getElementById('renameCatNewName').value.trim();
+        if(!oldName){ err.textContent='Select a category to rename.'; err.classList.remove('hidden'); return; }
+        if(!newName){ err.textContent='New category name is required.'; err.classList.remove('hidden'); return; }
+        if(oldName===newName){ err.textContent='Name is the same — no change needed.'; err.classList.remove('hidden'); return; }
+        const existing=[...new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category))];
+        if(existing.some(c=>c.toLowerCase()===newName.toLowerCase()&&c.toLowerCase()!==oldName.toLowerCase())){ err.textContent=`Category "${newName}" already exists.`; err.classList.remove('hidden'); return; }
+        err.classList.add('hidden');
+        pushUndo('rename category');
+        appliances.forEach(i=>{ if(i.category===oldName) i.category=newName; });
+        furnitureItems.forEach(i=>{ if(i.category===oldName) i.category=newName; });
+        appState.customItems.forEach(i=>{ if(i.category===oldName) i.category=newName; });
+        if(appState.customCategories) appState.customCategories.forEach(c=>{ if(c.name===oldName) c.name=newName; });
+        if(!appState.renamedCategories) appState.renamedCategories={};
+        appState.renamedCategories[oldName]=newName;
+        if(!CAT_COLORS[newName]&&CAT_COLORS[oldName]) CAT_COLORS[newName]=CAT_COLORS[oldName];
+        saveState(); closeAddItemModal(); renderContent(); renderFurniture(); calculateTotals();
+        showToast(`Category renamed: "${oldName}" → "${newName}"`,'success',true);
+        return;
+    }
+
     if(_addMode==='category'){
         const name=document.getElementById('newCategoryName').value.trim();
         const tab=document.getElementById('newCategoryTab').value;
@@ -1065,6 +1302,7 @@ function confirmAddItem(){
         showToast(`Category "${name}" created — add items to it now`);
         return;
     }
+
     const name=document.getElementById('newTypeName').value.trim();
     const category=document.getElementById('newTypeCategory').value.trim();
     const priority=document.getElementById('newTypePriority').value;
@@ -1079,17 +1317,32 @@ function confirmAddItem(){
     }
     if(!CAT_COLORS[category]) CAT_COLORS[category]=CAT_COLORS['Custom'];
     const id='custom_'+Date.now();
-    const modelName=document.getElementById('newTypeModelName').value.trim();
-    const modelPrice=parseInt(document.getElementById('newTypeModelPrice').value)||0;
-    const modelLink=document.getElementById('newTypeModelLink').value.trim()||'#';
     const choices=[];
-    if(modelName&&modelPrice>0){
-        choices.push({id:'c1',name:modelName,price:modelPrice,desc:context||'Custom model.',image:`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(modelName)}`,link:modelLink,specs:{'Price':`$${modelPrice.toLocaleString()} HKD`,'Category':category}});
+
+    if(_modelAddMode==='auto'&&_autoSearchResults.length){
+        _autoSearchResults.forEach((r,i)=>{
+            const mName=(document.getElementById(`autoModel${i}Name`)||{}).value||r.name;
+            const mPrice=parseInt((document.getElementById(`autoModel${i}Price`)||{}).value)||r.price||0;
+            const mDesc=(document.getElementById(`autoModel${i}Desc`)||{}).value||r.desc;
+            const mUrl=(document.getElementById(`autoModel${i}Url`)||{}).value||r.url||'#';
+            if(mName){
+                choices.push({id:`c${i+1}`,name:mName,price:mPrice,desc:mDesc||'Auto-discovered model.',image:r.image||`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(mName)}`,link:mUrl,specs:{'Price':mPrice?`$${mPrice.toLocaleString()} HKD`:'TBD','Category':category}});
+            }
+        });
+    } else {
+        const modelName=document.getElementById('newTypeModelName').value.trim();
+        const modelPrice=parseInt(document.getElementById('newTypeModelPrice').value)||0;
+        const modelLink=document.getElementById('newTypeModelLink').value.trim()||'#';
+        if(modelName&&modelPrice>0){
+            choices.push({id:'c1',name:modelName,price:modelPrice,desc:context||'Custom model.',image:`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(modelName)}`,link:modelLink,specs:{'Price':`$${modelPrice.toLocaleString()} HKD`,'Category':category}});
+        }
     }
+
     const tabGuess=['Living Room','Bedroom','Dining Room','Study / Work'].includes(category)?'furniture':_addItemTab;
+    pushUndo('add item');
     appState.customItems.push({id,category,name,priority,tab:tabGuess,context:context||'Custom item.',choices});
     saveState(); closeAddItemModal(); renderContent(); renderFurniture(); calculateTotals();
-    showToast(`"${name}" added to ${tabGuess}${choices.length?'':' — add models via URL or settings'}`);
+    showToast(`"${name}" added to ${tabGuess} with ${choices.length} model${choices.length!==1?'s':''}${choices.length?'':' — add models via URL'}`,'success',true);
 }
 
 // ============================================================
@@ -1106,9 +1359,15 @@ function resetUrlModal(){
     document.getElementById('urlConfirmError').classList.add('hidden');
     const btn=document.getElementById('fetchBtn');
     btn.disabled=false; document.getElementById('fetchBtnIcon').textContent='🔍'; document.getElementById('fetchBtnText').textContent='Fetch Info';
-    _fetchedImageUrl='';
-    const curSel=document.getElementById('fetchedCurrency'); if(curSel) curSel.value='HKD';
-    const curConv=document.getElementById('currencyConvert'); if(curConv) curConv.classList.add('hidden');
+    _fetchedImageUrl=''; _urlProducts=[];
+    const grid=document.getElementById('urlProductGrid'); if(grid){grid.classList.add('hidden');grid.innerHTML='';}
+    const status=document.getElementById('urlDiscoveryStatus'); if(status){status.classList.remove('hidden');status.className='text-xs text-blue-600 font-medium bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center gap-2';}
+    const opts=document.getElementById('urlCatalogOptions'); if(opts) opts.classList.add('hidden');
+    const btns=document.getElementById('urlStep2Buttons'); if(btns) btns.classList.add('hidden');
+    const fin=document.getElementById('fetchedItemName'); if(fin) fin.value='';
+    const fcat=document.getElementById('fetchedCategory'); if(fcat) fcat.value='';
+    const tgt=document.getElementById('urlAddTarget'); if(tgt) tgt.value='new';
+    const nif=document.getElementById('urlNewItemFields'); if(nif) nif.classList.remove('hidden');
 }
 
 const CATEGORY_KEYWORDS = {
@@ -1145,87 +1404,345 @@ function extractPrice(text){
     return '';
 }
 
+let _urlProducts=[];
+
+function parseUrlSlug(url){
+    try{
+        const u=new URL(url);
+        const path=decodeURIComponent(u.pathname);
+        const segments=path.split('/').filter(s=>s.length>2&&!/^(p|product|item|zh-hk|en|hk|category|shop|buy|detail|dp)$/i.test(s)&&!/^[A-Z]{2}_\d+$/.test(s));
+        const best=segments.sort((a,b)=>b.length-a.length)[0]||'';
+        const cleaned=best.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase()).trim();
+        return cleaned;
+    }catch(_){ return ''; }
+}
+
+async function fetchMetaFromUrl(url){
+    let meta={title:'',description:'',image:'',price:0,specs:{}};
+
+    // Jina Reader — renders JavaScript, best for Fortress/HKTVMALL/dynamic sites
+    const pJina=(async()=>{
+        try{
+            const r=await fetch(`https://r.jina.ai/${url}`,{headers:{'Accept':'application/json','X-Return-Format':'json'},signal:AbortSignal.timeout(12000)});
+            const d=await r.json();
+            if(d.data){
+                const title=d.data.title||'';
+                const desc=d.data.description||'';
+                const content=d.data.content||'';
+                const img=d.data.image||d.data.images?.[0]||'';
+                const price=extractPrice(title+' '+desc+' '+content.slice(0,5000))||0;
+                const specs=extractSpecs(content);
+                return {title,description:desc,image:img,price,specs};
+            }
+        }catch(_){}
+        return null;
+    })();
+
+    const pMicro=(async()=>{
+        try{
+            const r=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`,{signal:AbortSignal.timeout(8000)});
+            const d=await r.json();
+            if(d.status==='success') return {title:d.data.title||'',description:d.data.description||'',image:d.data.image?.url||d.data.logo?.url||'',price:extractPrice(d.data.title+' '+d.data.description)||0,specs:{}};
+        }catch(_){}
+        return null;
+    })();
+
+    const pJson=(async()=>{
+        try{
+            const r=await fetch(`https://jsonlink.io/api/extract?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(8000)});
+            const d=await r.json();
+            if(d.title) return {title:d.title,description:d.description||'',image:d.images?.[0]||'',price:extractPrice((d.title||'')+' '+(d.description||'')),specs:{}};
+        }catch(_){}
+        return null;
+    })();
+
+    const pOG=(async()=>{
+        try{
+            const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,{signal:AbortSignal.timeout(10000)});
+            const html=(await r.json()).contents||'';
+            const doc=new DOMParser().parseFromString(html,'text/html');
+            const og=p=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
+            const t=og('og:title')||doc.querySelector('title')?.textContent||'';
+            const desc=og('og:description')||og('description')||'';
+            const img=og('og:image')||'';
+            let price=0;
+            const ogP=og('product:price:amount')||og('og:price:amount')||'';
+            if(ogP) price=Math.round(parseFloat(ogP))||0;
+            if(!price){ doc.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{ try{const j=JSON.parse(s.textContent);const pp=j?.offers?.price||j?.offers?.[0]?.price;if(pp&&!price)price=Math.round(parseFloat(pp));}catch(_){}}); }
+            if(!price) price=extractPrice(html.slice(0,30000))||0;
+            const specs=extractSpecs(html.slice(0,30000));
+            return {title:t,description:desc,image:img,price,specs};
+        }catch(_){}
+        return null;
+    })();
+
+    const results=await Promise.allSettled([pJina,pMicro,pJson,pOG]);
+    for(const r of results){
+        if(r.status==='fulfilled'&&r.value){
+            const v=r.value;
+            if(!meta.title&&v.title) meta.title=v.title;
+            if(!meta.description&&v.description) meta.description=v.description;
+            if(!meta.image&&v.image) meta.image=v.image;
+            if(!meta.price&&v.price) meta.price=v.price;
+            if(v.specs&&Object.keys(v.specs).length>Object.keys(meta.specs).length) meta.specs=v.specs;
+        }
+    }
+
+    if(!meta.title){
+        meta.title=parseUrlSlug(url);
+        try{ meta.description=`Product from ${new URL(url).hostname.replace('www.','')}`; }catch(_){}
+    }
+
+    return meta;
+}
+
+function extractSpecs(text){
+    const specs={};
+    if(!text) return specs;
+    const patterns=[
+        /(?:screen\s*size|display)[:\s]*([^,\n]{3,40})/i,
+        /(?:resolution)[:\s]*([^,\n]{3,30})/i,
+        /(?:weight)[:\s]*([^,\n]{3,20})/i,
+        /(?:dimensions?|size)[:\s]*([^,\n]{5,40})/i,
+        /(?:power|wattage|watt)[:\s]*([^,\n]{3,20})/i,
+        /(?:capacity|volume)[:\s]*([^,\n]{3,30})/i,
+        /(?:colour|color)[:\s]*([^,\n]{3,20})/i,
+        /(?:warranty)[:\s]*([^,\n]{3,30})/i,
+        /(?:brand)[:\s]*([^,\n]{3,30})/i,
+        /(?:model\s*(?:no|number)?)[:\s]*([^,\n]{3,30})/i,
+        /(?:energy\s*(?:rating|class|label))[:\s]*([^,\n]{3,20})/i,
+    ];
+    const labels=['Screen Size','Resolution','Weight','Dimensions','Power','Capacity','Color','Warranty','Brand','Model','Energy Rating'];
+    patterns.forEach((pat,i)=>{
+        const m=text.match(pat);
+        if(m&&m[1]&&!specs[labels[i]]) specs[labels[i]]=m[1].trim();
+    });
+    return specs;
+}
+
 async function fetchProductUrl(){
     const url=document.getElementById('urlInput').value.trim();
-    if(!url||(!url.startsWith('http://')&&!url.startsWith('https://'))) {
+    if(!url||(!url.startsWith('http://')&&!url.startsWith('https://'))){
         const e=document.getElementById('fetchError'); e.textContent='Please enter a valid URL starting with https://'; e.classList.remove('hidden'); return;
     }
     document.getElementById('fetchError').classList.add('hidden');
     const btn=document.getElementById('fetchBtn');
     btn.disabled=true; document.getElementById('fetchBtnIcon').textContent='⏳'; document.getElementById('fetchBtnText').textContent='Fetching...';
 
-    let meta = { title:'', description:'', image:'', price:'' };
-
-    // Service 1: Microlink.io
-    try {
-        const r=await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}&palette=false&audio=false&video=false&iframe=false`, { signal: AbortSignal.timeout(8000) });
-        const d=await r.json();
-        if(d.status==='success'){
-            meta.title=d.data.title||''; meta.description=d.data.description||'';
-            meta.image=d.data.image?.url||d.data.logo?.url||'';
-            if(!meta.price) meta.price=extractPrice(d.data.title+' '+d.data.description);
-        }
-    } catch(_){}
-
-    // Service 2: JsonLink.io
-    if(!meta.title){
-        try {
-            const r=await fetch(`https://jsonlink.io/api/extract?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(8000) });
-            const d=await r.json();
-            if(d.title){ meta.title=meta.title||d.title; meta.description=meta.description||d.description||''; meta.image=meta.image||d.images?.[0]||''; }
-            if(!meta.price) meta.price=extractPrice((d.title||'')+' '+(d.description||''));
-        } catch(_){}
-    }
-
-    // Service 3: AllOrigins + OG tag parsing + JSON-LD structured data
-    if(!meta.title){
-        try {
-            const r=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(10000) });
-            const html=(await r.json()).contents||'';
-            const doc=new DOMParser().parseFromString(html,'text/html');
-            const og=(p)=>doc.querySelector(`meta[property="${p}"]`)?.content||doc.querySelector(`meta[name="${p}"]`)?.content||'';
-            meta.title=meta.title||og('og:title')||doc.querySelector('title')?.textContent||'';
-            meta.description=meta.description||og('og:description')||og('description')||'';
-            meta.image=meta.image||og('og:image')||'';
-            const ogPrice=og('product:price:amount')||og('og:price:amount')||'';
-            if(ogPrice&&!meta.price) meta.price=Math.round(parseFloat(ogPrice))||'';
-            if(!meta.price){
-                doc.querySelectorAll('script[type="application/ld+json"]').forEach(s=>{
-                    try{ const j=JSON.parse(s.textContent); const p=j?.offers?.price||j?.offers?.[0]?.price; if(p&&!meta.price) meta.price=Math.round(parseFloat(p)); }catch(_){}
-                });
-            }
-            if(!meta.price) meta.price=extractPrice(html.slice(0,20000));
-        } catch(_){}
-    }
+    const meta=await fetchMetaFromUrl(url);
 
     btn.disabled=false; document.getElementById('fetchBtnIcon').textContent='🔍'; document.getElementById('fetchBtnText').textContent='Fetch Info';
 
-    const gotSomething = meta.title||meta.description||meta.image;
-    if(!gotSomething){
+    const partialData=!meta.title||(!meta.description&&!meta.image);
+    if(partialData){
         const e=document.getElementById('fetchError');
-        e.innerHTML='<strong>Could not auto-extract info</strong> — the site may block scrapers. The form below is ready for you to fill in manually.';
+        e.innerHTML='<strong>Limited auto-extraction</strong> — some fields were guessed from the URL. Please verify and edit below.';
         e.classList.remove('hidden');
     }
 
-    _fetchedImageUrl = meta.image;
+    _fetchedImageUrl=meta.image;
     const img=document.getElementById('fetchedImagePreview');
     img.src=meta.image||`https://placehold.co/160x110/f5f3ff/3730a3?text=Product`;
-    img.onerror=()=>{ img.src=`https://placehold.co/160x110/f5f3ff/3730a3?text=No+Image`; };
+    img.onerror=()=>{img.src=`https://placehold.co/160x110/f5f3ff/3730a3?text=No+Image`;};
     document.getElementById('fetchedSourceUrl').textContent=url;
-    document.getElementById('fetchedName').value=(meta.title||'').slice(0,120);
-    document.getElementById('fetchedDesc').value=(meta.description||'').slice(0,300);
-    document.getElementById('fetchedPrice').value=meta.price||'';
+    document.getElementById('fetchedPrimaryName').textContent=(meta.title||'').slice(0,80);
+
     const autoCategory=detectCategory(meta.title+' '+meta.description+' '+url);
     document.getElementById('fetchedCategory').value=autoCategory;
+    const itemType=guessItemType(meta.title,autoCategory);
+    document.getElementById('fetchedItemName').value=itemType;
     if(autoCategory){
-        const tabGuess=['Living Room','Bedroom','Dining Room','Study / Work'].includes(autoCategory)?'furniture':'appliances';
-        document.getElementById('fetchedTab').value=tabGuess;
+        document.getElementById('fetchedTab').value=['Living Room','Bedroom','Dining Room','Study / Work'].includes(autoCategory)?'furniture':'appliances';
     }
-    populateExistingItemDropdown(autoCategory);
+    updateCategoryDatalist();
+    populateUrlAddTarget(autoCategory);
+
+    _urlProducts=[{name:(meta.title||'').slice(0,100),price:meta.price||0,desc:(meta.description||'').slice(0,200),image:meta.image,url:url,selected:true,isOriginal:true,specs:meta.specs||{}}];
+
     document.getElementById('urlStep1').classList.add('hidden');
     document.getElementById('urlStep2').classList.remove('hidden');
-    if(!meta.price) setTimeout(()=>document.getElementById('fetchedPrice').focus(),100);
-    else setTimeout(()=>document.getElementById('fetchedName').focus(),100);
+    renderUrlProductGrid();
+
+    discoverSimilarProducts(meta.title,itemType,autoCategory,url);
+}
+
+function guessItemType(title,category){
+    if(!title) return category||'Item';
+    const combined=(title+' '+category).toLowerCase();
+    const typeWords=['robot vacuum','air purifier','air conditioner','washing machine','dryer','dishwasher','refrigerator','fridge','microwave','oven','rice cooker','air fryer','vacuum cleaner','vacuum','water purifier','water filter','heater','fan','dehumidifier','humidifier','smart tv','oled tv','qled tv','4k tv','television','tv','monitor','soundbar','speaker','coffee machine','coffee maker','toaster','blender','kettle','iron','sofa','desk','chair','table','bed','mattress','shelf','cabinet','wardrobe','curtain','lamp','light','電視','冷氣機','洗衣機','雪櫃','冰箱','吸塵機','空氣清新機'];
+    const typeMap={'電視':'TV','冷氣機':'Air Conditioner','洗衣機':'Washing Machine','雪櫃':'Refrigerator','冰箱':'Refrigerator','吸塵機':'Vacuum','空氣清新機':'Air Purifier','smart tv':'Smart TV','oled tv':'OLED TV','qled tv':'QLED TV','4k tv':'4K TV'};
+    for(const tw of typeWords){
+        if(combined.includes(tw)){
+            if(typeMap[tw]) return typeMap[tw];
+            return tw.split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+        }
+    }
+    const brand=/\b(samsung|lg|panasonic|sony|philips|dyson|bosch|miele|daikin|hitachi|toshiba|mitsubishi|sharp|whirlpool|electrolux|ikea|muji|flexispot|tempur)\b/i;
+    let clean=title.replace(brand,'').replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+    const words=clean.split(' ').slice(0,3).join(' ');
+    return words||category||'Item';
+}
+
+async function discoverSimilarProducts(originalTitle,itemType,category,originalUrl){
+    const statusEl=document.getElementById('urlDiscoveryStatus');
+    const msgEl=document.getElementById('urlDiscoveryMsg');
+    statusEl.classList.remove('hidden');
+    msgEl.textContent=`Finding 3 more "${itemType}" options for you...`;
+
+    const searchQuery=`best ${itemType} ${category||''} buy Hong Kong 2025`;
+    const discovered=[];
+
+    try{
+        const ddgUrl=`https://api.allorigins.win/get?url=${encodeURIComponent('https://html.duckduckgo.com/html/?q='+encodeURIComponent(searchQuery))}`;
+        const resp=await fetch(ddgUrl,{signal:AbortSignal.timeout(10000)});
+        const data=await resp.json();
+        if(data.contents){
+            const doc=new DOMParser().parseFromString(data.contents,'text/html');
+            const links=[];
+            doc.querySelectorAll('.result__title a, .result__a').forEach(a=>{
+                let href=a.getAttribute('href')||'';
+                if(href.includes('uddg=')) href=decodeURIComponent(href.split('uddg=')[1]?.split('&')[0]||'');
+                const title=(a.textContent||'').trim();
+                if(title&&href&&href.startsWith('http')&&!href.includes('duckduckgo')&&!href.includes('youtube')&&!href.includes('reddit')&&href!==originalUrl){
+                    links.push({title,url:href});
+                }
+            });
+            const snippets=doc.querySelectorAll('.result__snippet');
+            snippets.forEach((s,i)=>{ if(links[i]) links[i].snippet=(s.textContent||'').trim(); });
+
+            const unique=[];
+            const seen=new Set();
+            try{seen.add(new URL(originalUrl).hostname);}catch(_){}
+            for(const p of links){
+                const host=(()=>{try{return new URL(p.url).hostname;}catch(_){return '';}})();
+                if(!seen.has(host)&&p.title.length>5){ seen.add(host); unique.push(p); }
+                if(unique.length>=6) break;
+            }
+
+            msgEl.textContent=`Found ${unique.length} candidates, fetching product details...`;
+
+            for(const p of unique){
+                if(discovered.length>=3) break;
+                try{
+                    msgEl.textContent=`Fetching details (${discovered.length+1}/3)...`;
+                    const m=await fetchMetaFromUrl(p.url);
+                    if(m.title){
+                        const name=extractModelName(m.title,itemType);
+                        discovered.push({
+                            name:(name||m.title).slice(0,100),
+                            price:m.price||0,
+                            desc:(m.description||p.snippet||'').slice(0,200),
+                            image:m.image||'',
+                            url:p.url,
+                            selected:true,
+                            isOriginal:false,
+                            specs:m.specs||{}
+                        });
+                        _urlProducts=[..._urlProducts,...discovered.slice(discovered.length-1)];
+                        renderUrlProductGrid();
+                    }
+                }catch(_){}
+            }
+
+            if(discovered.length<3){
+                for(const p of unique){
+                    if(discovered.length>=3) break;
+                    if(discovered.some(d=>d.url===p.url)) continue;
+                    const name=extractModelName(p.title,itemType);
+                    discovered.push({
+                        name:(name||p.title).slice(0,100),
+                        price:0,
+                        desc:(p.snippet||'').slice(0,200),
+                        image:'',
+                        url:p.url,
+                        selected:true,
+                        isOriginal:false,
+                        specs:{}
+                    });
+                    _urlProducts=[_urlProducts[0],...discovered];
+                    renderUrlProductGrid();
+                }
+            }
+        }
+    }catch(_){}
+
+    _urlProducts=[_urlProducts[0],...discovered.slice(0,3)];
+    renderUrlProductGrid();
+
+    if(discovered.length>0){
+        statusEl.innerHTML=`<span class="text-emerald-600">✓</span><span class="text-emerald-700 font-bold">Found ${discovered.length} similar product${discovered.length!==1?'s':''}! Select which ones to add.</span>`;
+        statusEl.className='text-xs font-medium bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-2';
+    } else {
+        statusEl.innerHTML=`<span>⚠️</span><span>Could not find similar products automatically. You can still add your original product.</span>`;
+        statusEl.className='text-xs font-medium bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-2 text-amber-700';
+    }
+    document.getElementById('urlStep2Buttons').classList.remove('hidden');
+    document.getElementById('urlCatalogOptions').classList.remove('hidden');
+}
+
+function renderUrlProductGrid(){
+    const grid=document.getElementById('urlProductGrid');
+    grid.classList.remove('hidden');
+    grid.innerHTML=_urlProducts.map((p,i)=>{
+        const imgSrc=p.image||`https://placehold.co/120x80/f5f3ff/3730a3?text=${encodeURIComponent(p.name.slice(0,15))}`;
+        const border=p.selected?(p.isOriginal?'border-violet-400 bg-violet-50/50':'border-blue-400 bg-blue-50/30'):'border-gray-200';
+        const store=extractStore(p.url);
+        return `
+        <div class="border-2 rounded-xl p-3 transition-all cursor-pointer ${border}" onclick="toggleUrlProduct(${i})">
+            <div class="flex items-start gap-3">
+                <div class="relative flex-shrink-0">
+                    <input type="checkbox" ${p.selected?'checked':''} onclick="event.stopPropagation();toggleUrlProduct(${i})" class="absolute top-0 left-0 w-4 h-4 accent-violet-600 cursor-pointer">
+                    <img src="${imgSrc}" alt="${p.name}" class="w-16 h-12 object-contain rounded-lg border border-gray-200 bg-white p-0.5 ml-5" onerror="this.src='https://placehold.co/120x80/f5f3ff/3730a3?text=No+Image'">
+                </div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0">
+                            <input type="text" value="${p.name.replace(/"/g,'&quot;')}" onchange="_urlProducts[${i}].name=this.value" onclick="event.stopPropagation()" class="text-xs font-bold text-gray-900 w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-violet-400 outline-none pb-0.5 truncate" title="${p.name}">
+                            ${p.isOriginal?'<span class="text-[9px] font-bold text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded-full">YOUR URL</span>':'<span class="text-[9px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded-full">DISCOVERED</span>'}
+                            ${store!=='TBD'?`<span class="text-[9px] text-gray-400 ml-1">${store}</span>`:''}
+                        </div>
+                        <div class="flex-shrink-0 flex items-center gap-1">
+                            <span class="text-[10px] text-gray-400">$</span>
+                            <input type="number" value="${p.price||''}" placeholder="0" onchange="_urlProducts[${i}].price=parseInt(this.value)||0" onclick="event.stopPropagation()" class="w-16 text-sm font-black text-blue-600 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-violet-400 outline-none text-right" title="Price in HKD">
+                        </div>
+                    </div>
+                    <input type="text" value="${(p.desc||'').replace(/"/g,'&quot;')}" onchange="_urlProducts[${i}].desc=this.value" onclick="event.stopPropagation()" class="text-[11px] text-gray-400 w-full bg-transparent border-b border-transparent hover:border-gray-300 focus:border-violet-400 outline-none mt-1 truncate" placeholder="Description">
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function toggleUrlProduct(idx){
+    _urlProducts[idx].selected=!_urlProducts[idx].selected;
+    renderUrlProductGrid();
+}
+
+function populateUrlAddTarget(category){
+    const sel=document.getElementById('urlAddTarget');
+    const all=[...getAllAppliances(),...getAllFurniture()];
+    const matching=all.filter(i=>!category||i.category.toLowerCase()===category.toLowerCase());
+    const others=all.filter(i=>category&&i.category.toLowerCase()!==category.toLowerCase());
+    sel.innerHTML='<option value="new">🆕 Create new item type</option>';
+    if(matching.length){
+        sel.innerHTML+=`<optgroup label="Same category (${category})">`;
+        matching.forEach(item=>{
+            sel.innerHTML+=`<option value="${item.id}">➕ ${item.name} (${item.choices.length} model${item.choices.length!==1?'s':''})</option>`;
+        });
+        sel.innerHTML+=`</optgroup>`;
+    }
+    if(others.length){
+        sel.innerHTML+=`<optgroup label="Other categories">`;
+        others.forEach(item=>{
+            sel.innerHTML+=`<option value="${item.id}">➕ ${item.name} — ${item.category} (${item.choices.length} model${item.choices.length!==1?'s':''})</option>`;
+        });
+        sel.innerHTML+=`</optgroup>`;
+    }
+}
+
+function toggleUrlAddTarget(){
+    const val=document.getElementById('urlAddTarget').value;
+    document.getElementById('urlNewItemFields').classList.toggle('hidden',val!=='new');
 }
 
 function populateExistingItemDropdown(category){
@@ -1306,6 +1823,71 @@ function confirmAddProduct(){
     pushUndo('add product');
     saveState(); closeUrlModal(); renderContent(); renderFurniture(); calculateTotals();
     showToast(`"${name}" added to ${tab}`,'success',true);
+}
+
+function confirmAddSelectedProducts(){
+    const err=document.getElementById('urlConfirmError');
+    const targetVal=document.getElementById('urlAddTarget').value;
+    const isNew=targetVal==='new';
+
+    const selected=_urlProducts.filter(p=>p.selected);
+    if(!selected.length){ err.textContent='Select at least one product to add.'; err.classList.remove('hidden'); return; }
+
+    const noPrice=selected.filter(p=>!p.price||p.price<=0);
+    if(noPrice.length){
+        err.textContent=`Price missing for: ${noPrice.map(p=>p.name.slice(0,30)).join(', ')}. Please enter prices.`;
+        err.classList.remove('hidden'); return;
+    }
+
+    err.classList.add('hidden');
+    pushUndo('add products');
+
+    function makeChoice(p,idx){
+        let hostname='';try{hostname=new URL(p.url).hostname;}catch(_){hostname='URL';}
+        const baseSpecs={'Price':`$${p.price.toLocaleString()} HKD`,'Source':hostname};
+        const mergedSpecs=p.specs&&Object.keys(p.specs).length?{...baseSpecs,...p.specs}:baseSpecs;
+        return {
+            id:`c${idx}`,name:p.name,price:p.price,
+            desc:p.desc||'Imported product.',
+            image:p.image||`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(p.name.slice(0,15))}`,
+            link:p.url, specs:mergedSpecs
+        };
+    }
+
+    if(!isNew){
+        const target=findItemById(targetVal);
+        if(!target){ err.textContent='Selected item not found.'; err.classList.remove('hidden'); return; }
+
+        const startIdx=target.choices.length+1;
+        const newChoices=selected.map((p,i)=>makeChoice(p,startIdx+i));
+
+        newChoices.forEach(ch=>target.choices.push(ch));
+
+        if(!appState.addedChoices) appState.addedChoices={};
+        if(!appState.addedChoices[targetVal]) appState.addedChoices[targetVal]=[];
+        newChoices.forEach(ch=>appState.addedChoices[targetVal].push(ch));
+
+        saveState(); closeUrlModal(); renderContent(); renderFurniture(); calculateTotals();
+        showToast(`${selected.length} model${selected.length!==1?'s':''} added to "${target.name}" for comparison`,'success',true);
+        return;
+    }
+
+    const category=document.getElementById('fetchedCategory').value.trim();
+    const tab=document.getElementById('fetchedTab').value;
+    const priority=document.getElementById('fetchedPriority').value;
+    const itemName=document.getElementById('fetchedItemName').value.trim();
+
+    if(!category){ err.textContent='Category is required.'; err.classList.remove('hidden'); return; }
+    if(!itemName){ err.textContent='Item type name is required (e.g. "TV").'; err.classList.remove('hidden'); return; }
+
+    if(!CAT_COLORS[category]) CAT_COLORS[category]=CAT_COLORS['Custom'];
+
+    const id='url_'+Date.now();
+    const choices=selected.map((p,i)=>makeChoice(p,i+1));
+
+    appState.customItems.push({id,category,name:itemName,priority,tab,context:`${selected.length} model${selected.length!==1?'s':''} discovered via URL import.`,choices});
+    saveState(); closeUrlModal(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`"${itemName}" added with ${selected.length} model${selected.length!==1?'s':''}`,'success',true);
 }
 
 // ============================================================
@@ -1499,7 +2081,10 @@ function renderItemCard(item){
                             ${ch.name}
                             ${ch.link&&ch.link!=='#'?`<a href="${ch.link}" target="_blank" onclick="event.stopPropagation()" class="text-blue-400 hover:text-blue-600 font-bold" title="View online" aria-label="View ${ch.name} online">↗</a>`:''}
                         </span>
-                        <span class="text-sm font-black text-blue-600 whitespace-nowrap flex-shrink-0">$${ch.price.toLocaleString()}</span>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            <span class="text-sm font-black text-blue-600 whitespace-nowrap">$${ch.price.toLocaleString()}</span>
+                            ${item.choices.length>1?`<button onclick="event.stopPropagation();removeChoice('${item.id}','${ch.id}','${item._tab||'appliances'}')" class="text-gray-300 hover:text-red-400 text-xs transition" title="Remove this model">✕</button>`:''}
+                        </div>
                     </div>
                     <p class="text-xs text-gray-400 leading-snug line-clamp-2">${ch.desc}</p>
                 </div>
@@ -1538,6 +2123,7 @@ function renderItemCard(item){
             <div class="space-y-2.5">${choicesHtml}</div>
             <div class="flex gap-2 mt-3">
                 ${hasCompare?`<button onclick="openCompare('${item.id}','${item._tab||'appliances'}')" class="flex-grow py-2 ${cc.bg} ${cc.text} border ${cc.border} rounded-xl text-xs font-bold hover:opacity-80 transition flex justify-center items-center gap-1.5">⇌ Compare</button>`:''}
+                <button onclick="openEditModal('${item.id}','${item._tab||'appliances'}')" class="px-3 py-2 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-100 transition flex-shrink-0" title="Edit item">✏️</button>
                 <button onclick="toggleNote('${item.id}')" class="px-3 py-2 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl text-xs font-bold hover:bg-gray-100 transition flex-shrink-0" title="Notes">📝${note?' •':''}</button>
             </div>
             <div id="note-area-${item.id}" class="note-area ${note?'open':''} mt-2">
@@ -1545,6 +2131,194 @@ function renderItemCard(item){
             </div>
         </div>
     </div>`;
+}
+
+// ============================================================
+// EDIT / REMOVE ITEMS
+// ============================================================
+let _editItemId='', _editItemTab='';
+function findItemById(id){
+    return [...appliances,...furnitureItems,...appState.customItems].find(i=>i.id===id);
+}
+function isCustomItem(id){ return appState.customItems.some(i=>i.id===id); }
+
+function openEditModal(id,tab){
+    _editItemId=id; _editItemTab=tab;
+    const item=findItemById(id);
+    if(!item){ showToast('Item not found','error'); return; }
+    document.getElementById('editItemId').value=id;
+    document.getElementById('editItemName').value=item.name;
+    document.getElementById('editItemCategory').value=item.category;
+    document.getElementById('editItemPriority').value=item.priority||'Good to Have';
+    document.getElementById('editItemTab').value=item.tab||tab||'appliances';
+    document.getElementById('editItemContext').value=item.context||'';
+    document.getElementById('editModalSubtitle').textContent=`Editing: ${item.name}`;
+
+    const cats=[...new Set([...getAllAppliances(),...getAllFurniture()].map(i=>i.category))].sort();
+    document.getElementById('editCatDatalist').innerHTML=cats.map(c=>`<option value="${c}">`).join('');
+
+    renderEditChoices(item.choices);
+    document.getElementById('editItemError').classList.add('hidden');
+    document.getElementById('editItemModal').classList.remove('hidden');
+}
+
+function renderEditChoices(choices){
+    const el=document.getElementById('editChoicesList');
+    el.innerHTML=choices.map((ch,i)=>`
+        <div class="border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2" data-choice-idx="${i}">
+            <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Model ${i+1}</span>
+                ${choices.length>1?`<button type="button" onclick="removeEditChoice(${i})" class="text-xs text-red-400 hover:text-red-600 font-bold transition">✕ Remove</button>`:''}
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div><label class="text-[10px] font-bold text-gray-500">Name *</label><input type="text" class="ec-name w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" value="${(ch.name||'').replace(/"/g,'&quot;')}"></div>
+                <div><label class="text-[10px] font-bold text-gray-500">Price (HKD) *</label><input type="number" class="ec-price w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" value="${ch.price||0}"></div>
+            </div>
+            <div><label class="text-[10px] font-bold text-gray-500">Description</label><input type="text" class="ec-desc w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" value="${(ch.desc||'').replace(/"/g,'&quot;')}"></div>
+            <div><label class="text-[10px] font-bold text-gray-500">URL</label><input type="text" class="ec-link w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white text-blue-600" value="${ch.link||''}"></div>
+            <input type="hidden" class="ec-id" value="${ch.id||''}">
+            <input type="hidden" class="ec-image" value="${ch.image||''}">
+        </div>`).join('');
+}
+
+function removeEditChoice(idx){
+    const list=document.getElementById('editChoicesList');
+    const cards=[...list.children];
+    if(cards.length<=1){ showToast('Must have at least one model','warning'); return; }
+    cards[idx].remove();
+    [...document.getElementById('editChoicesList').children].forEach((c,i)=>{
+        c.querySelector('.text-indigo-600').textContent=`Model ${i+1}`;
+        c.dataset.choiceIdx=i;
+        const removeBtn=c.querySelector('.text-red-400');
+        if(removeBtn) removeBtn.setAttribute('onclick',`removeEditChoice(${i})`);
+    });
+}
+
+function addEditChoice(){
+    const list=document.getElementById('editChoicesList');
+    const idx=list.children.length;
+    const div=document.createElement('div');
+    div.className='border border-gray-200 rounded-xl p-3 bg-gray-50 space-y-2';
+    div.dataset.choiceIdx=idx;
+    const canRemove=list.children.length>=1;
+    div.innerHTML=`
+        <div class="flex justify-between items-center">
+            <span class="text-xs font-bold text-indigo-600 uppercase tracking-wide">Model ${idx+1}</span>
+            ${canRemove?`<button type="button" onclick="removeEditChoice(${idx})" class="text-xs text-red-400 hover:text-red-600 font-bold transition">✕ Remove</button>`:''}
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            <div><label class="text-[10px] font-bold text-gray-500">Name *</label><input type="text" class="ec-name w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" placeholder="Model name"></div>
+            <div><label class="text-[10px] font-bold text-gray-500">Price (HKD) *</label><input type="number" class="ec-price w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" placeholder="0"></div>
+        </div>
+        <div><label class="text-[10px] font-bold text-gray-500">Description</label><input type="text" class="ec-desc w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white" placeholder="Brief description"></div>
+        <div><label class="text-[10px] font-bold text-gray-500">URL</label><input type="text" class="ec-link w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400 bg-white text-blue-600" placeholder="https://..."></div>
+        <input type="hidden" class="ec-id" value="c${Date.now()}">
+        <input type="hidden" class="ec-image" value="">`;
+    list.appendChild(div);
+}
+
+function closeEditModal(){
+    document.getElementById('editItemModal').classList.add('hidden');
+    _editItemId=''; _editItemTab='';
+}
+
+function confirmEditItem(){
+    const err=document.getElementById('editItemError');
+    const name=document.getElementById('editItemName').value.trim();
+    const category=document.getElementById('editItemCategory').value.trim();
+    const priority=document.getElementById('editItemPriority').value;
+    const tab=document.getElementById('editItemTab').value;
+    const context=document.getElementById('editItemContext').value.trim();
+    if(!name){ err.textContent='Item name is required.'; err.classList.remove('hidden'); return; }
+    if(!category){ err.textContent='Category is required.'; err.classList.remove('hidden'); return; }
+
+    const choiceCards=[...document.getElementById('editChoicesList').children];
+    const choices=[];
+    for(const card of choiceCards){
+        const cName=card.querySelector('.ec-name').value.trim();
+        const cPrice=parseInt(card.querySelector('.ec-price').value)||0;
+        const cDesc=card.querySelector('.ec-desc').value.trim();
+        const cLink=card.querySelector('.ec-link').value.trim()||'#';
+        const cId=card.querySelector('.ec-id').value||('c'+Date.now()+'_'+Math.random().toString(36).slice(2,6));
+        const cImage=card.querySelector('.ec-image').value;
+        if(!cName){ err.textContent='All models must have a name.'; err.classList.remove('hidden'); return; }
+        if(cPrice<=0){ err.textContent=`Price for "${cName}" must be greater than 0.`; err.classList.remove('hidden'); return; }
+        choices.push({id:cId,name:cName,price:cPrice,desc:cDesc||'No description.',image:cImage||`https://placehold.co/160x110/f5f3ff/3730a3?text=${encodeURIComponent(cName)}`,link:cLink,specs:{'Price':`$${cPrice.toLocaleString()} HKD`,'Category':category}});
+    }
+    err.classList.add('hidden');
+    pushUndo('edit item');
+
+    const item=findItemById(_editItemId);
+    if(!item){ err.textContent='Item not found.'; err.classList.remove('hidden'); return; }
+
+    if(isCustomItem(_editItemId)){
+        const ci=appState.customItems.find(i=>i.id===_editItemId);
+        if(ci){
+            ci.name=name; ci.category=category; ci.priority=priority; ci.tab=tab; ci.context=context;
+            ci.choices=choices;
+        }
+    } else {
+        item.name=name; item.category=category; item.priority=priority; item.context=context;
+        item.choices=choices;
+        if(!appState.editedItems) appState.editedItems={};
+        appState.editedItems[_editItemId]={name,category,priority,context,choices};
+    }
+
+    if(!CAT_COLORS[category]) CAT_COLORS[category]=CAT_COLORS['Custom'];
+    saveState(); closeEditModal(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`"${name}" updated`,'success',true);
+}
+
+function confirmDeleteItem(){
+    const item=findItemById(_editItemId);
+    if(!item){ showToast('Item not found','error'); return; }
+    if(!confirm(`Delete "${item.name}" and all its models? This cannot be undone via the confirm dialog (but you can use Undo).`)) return;
+    pushUndo('delete item');
+
+    if(isCustomItem(_editItemId)){
+        appState.customItems=appState.customItems.filter(i=>i.id!==_editItemId);
+    } else {
+        const aIdx=appliances.findIndex(i=>i.id===_editItemId);
+        if(aIdx!==-1) appliances.splice(aIdx,1);
+        const fIdx=furnitureItems.findIndex(i=>i.id===_editItemId);
+        if(fIdx!==-1) furnitureItems.splice(fIdx,1);
+        if(!appState.editedItems) appState.editedItems={};
+        appState.editedItems[_editItemId]={_deleted:true};
+    }
+    Object.keys(appState.cart).forEach(k=>{ if(k.startsWith(_editItemId+':')) delete appState.cart[k]; });
+    delete appState.itemStatus[_editItemId];
+    delete appState.notes[_editItemId];
+    const wIdx=appState.wishlist.indexOf(_editItemId);
+    if(wIdx!==-1) appState.wishlist.splice(wIdx,1);
+
+    saveState(); closeEditModal(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`"${item.name}" deleted`,'info',true);
+}
+
+function removeChoice(itemId,choiceId,tab){
+    const item=findItemById(itemId);
+    if(!item) return;
+    if(item.choices.length<=1){ showToast('Cannot remove the only model — edit or delete the entire item instead','warning'); return; }
+    const ch=item.choices.find(c=>c.id===choiceId);
+    if(!ch) return;
+    if(!confirm(`Remove model "${ch.name}" from ${item.name}?`)) return;
+    pushUndo('remove model');
+
+    item.choices=item.choices.filter(c=>c.id!==choiceId);
+    delete appState.cart[`${itemId}:${choiceId}`];
+
+    if(isCustomItem(itemId)){
+        const ci=appState.customItems.find(i=>i.id===itemId);
+        if(ci) ci.choices=ci.choices.filter(c=>c.id!==choiceId);
+    } else {
+        if(!appState.editedItems) appState.editedItems={};
+        if(!appState.editedItems[itemId]) appState.editedItems[itemId]={};
+        if(!appState.editedItems[itemId].removedChoices) appState.editedItems[itemId].removedChoices=[];
+        appState.editedItems[itemId].removedChoices.push(choiceId);
+    }
+
+    saveState(); renderContent(); renderFurniture(); calculateTotals();
+    showToast(`"${ch.name}" removed`,'info',true);
 }
 
 // ============================================================
@@ -2012,6 +2786,37 @@ initDarkMode(); // run before anything renders to avoid flash
 const urlP=new URLSearchParams(window.location.search), compareId=urlP.get('compare'), compareTab=urlP.get('tab'), compareChoices=urlP.get('choices');
 function initApp(){
     loadState();
+    if(appState.renamedCategories){
+        for(const[oldName,newName] of Object.entries(appState.renamedCategories)){
+            appliances.forEach(i=>{ if(i.category===oldName) i.category=newName; });
+            furnitureItems.forEach(i=>{ if(i.category===oldName) i.category=newName; });
+            if(!CAT_COLORS[newName]&&CAT_COLORS[oldName]) CAT_COLORS[newName]=CAT_COLORS[oldName];
+        }
+    }
+    if(appState.editedItems){
+        for(const[id,edits] of Object.entries(appState.editedItems)){
+            if(edits._deleted){
+                const aIdx=appliances.findIndex(i=>i.id===id);
+                if(aIdx!==-1) appliances.splice(aIdx,1);
+                const fIdx=furnitureItems.findIndex(i=>i.id===id);
+                if(fIdx!==-1) furnitureItems.splice(fIdx,1);
+                continue;
+            }
+            if(edits.choices){
+                const target=[...appliances,...furnitureItems].find(i=>i.id===id);
+                if(target){ target.name=edits.name; target.category=edits.category; target.priority=edits.priority; target.context=edits.context; target.choices=edits.choices; }
+                continue;
+            }
+            const target=[...appliances,...furnitureItems].find(i=>i.id===id);
+            if(target){
+                if(edits.name!==undefined) target.name=edits.name;
+                if(edits.category!==undefined) target.category=edits.category;
+                if(edits.priority!==undefined) target.priority=edits.priority;
+                if(edits.context!==undefined) target.context=edits.context;
+                if(edits.removedChoices) target.choices=target.choices.filter(c=>!edits.removedChoices.includes(c.id));
+            }
+        }
+    }
     if(appState.addedChoices){
         for(const[targetId,added] of Object.entries(appState.addedChoices)){
             const target=[...appliances,...furnitureItems].find(i=>i.id===targetId);
